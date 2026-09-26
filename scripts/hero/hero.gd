@@ -68,7 +68,6 @@ var _dead_t := 0.0
 var _flash: PointLight2D
 var _flash_e := 0.0
 var _whip_arm := 0.0  # weight of the far arm tracking the whip tip
-var _crouch_drop := 0.0
 
 
 func _ready() -> void:
@@ -96,20 +95,9 @@ func _ready() -> void:
 	_flash.color = Color("#ffd27a")
 	_flash.energy = 0.0
 	add_child(_flash)
-	_measure_crouch()
 	spawn = global_position
 	_peak_y = global_position.y
 	anim.play("fall", 0.0)
-
-
-## The climb clip ends in the landing crouch 35px up; patch its hip height so that
-## snapping onto the ledge and playing "land" is seamless.
-func _measure_crouch() -> void:
-	var land: Dictionary = HeroAnims.clips["land"]
-	rig.apply(land["keys"][0][1], 1)
-	_crouch_drop = rig.hips.position.y - HeroRig.HIP_Y
-	var climb_keys: Array = HeroAnims.clips["climb"]["keys"]
-	climb_keys[-1][1]["hy"] = -HANG_H + _crouch_drop
 
 
 # --- Input (overridable by the test bot) ---------------------------------------

@@ -1,16 +1,15 @@
 class_name Gallery
 extends Node
 ## Renders animation contact sheets / frame strips of the hero rig at true game
-## resolution (1x), upscaled with nearest-neighbour. Needs a real renderer (not --headless):
+## resolution (1x) on a transparent background, upscaled with nearest-neighbour. Needs a real renderer (not --headless):
 ##   godot --path . -- --gallery <out_dir> [--frames]
 ## Writes <out_dir>/sheet.png (every clip, 6 samples) and with --frames, per-clip
 ## frame strips <clip>.png (12 fps) for the art bible.
 
-const CELL := Vector2i(56, 56)
+const CELL := Vector2i(64, 84)
 const SCALE := 4
 const SAMPLES := 6
-const FPS := 12.0
-const BG := Color("#2a1c14")
+const FPS := 24.0
 const FLOOR := Color("#5c3320")
 
 var out_dir := "user://gallery"
@@ -34,22 +33,23 @@ func _ready() -> void:
 func _viewport(size: Vector2i) -> SubViewport:
 	var vp := SubViewport.new()
 	vp.size = size
-	vp.transparent_bg = false
+	vp.transparent_bg = true
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	vp.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
 	add_child(vp)
-	var bg := ColorRect.new()
-	bg.color = BG
-	bg.size = size
-	vp.add_child(bg)
 	return vp
 
 
-func _cell_rig(vp: SubViewport, origin: Vector2, pose: Dictionary, lock: int) -> void:
+func _cell_rig(vp: SubViewport, origin: Vector2, pose: Dictionary, lock: int, clip := "") -> void:
 	var fl := ColorRect.new()
 	fl.color = FLOOR
-	fl.position = origin + Vector2(-CELL.x / 2.0 + 2, 0)
-	fl.size = Vector2(CELL.x - 4, 2)
+	if clip == "hang" or clip == "climb":
+		# The ledge being hung from: lip 35px above the feet, wall 4.5px ahead.
+		fl.position = origin + Vector2(4.5, -35)
+		fl.size = Vector2(CELL.x / 2.0 - 6, 43)
+	else:
+		fl.position = origin + Vector2(-CELL.x / 2.0 + 2, 0)
+		fl.size = Vector2(CELL.x - 4, 2)
 	vp.add_child(fl)
 	var rig := HeroRig.new()
 	rig.position = origin
@@ -74,7 +74,7 @@ func _sheet() -> void:
 		for s in SAMPLES:
 			var t: float = c["len"] * s / (SAMPLES - (0 if c["loop"] else 1))
 			var origin := Vector2(CELL.x * s + CELL.x / 2.0, CELL.y * r + CELL.y - 8)
-			_cell_rig(vp, origin, HeroAnims.sample(c, t), c["lock"])
+			_cell_rig(vp, origin, HeroAnims.sample(c, t), c["lock"], names[r])
 	await _save(vp, out_dir.path_join("sheet.png"))
 	var f := FileAccess.open(out_dir.path_join("sheet.txt"), FileAccess.WRITE)
 	f.store_string("\n".join(names))
@@ -86,5 +86,5 @@ func _strip(name: String) -> void:
 	var vp := _viewport(Vector2i(CELL.x * n, CELL.y))
 	for k in n:
 		var t := minf(k / FPS, c["len"])
-		_cell_rig(vp, Vector2(CELL.x * k + CELL.x / 2.0, CELL.y - 8), HeroAnims.sample(c, t), c["lock"])
+		_cell_rig(vp, Vector2(CELL.x * k + CELL.x / 2.0, CELL.y - 8), HeroAnims.sample(c, t), c["lock"], name)
 	await _save(vp, out_dir.path_join(name + ".png"))

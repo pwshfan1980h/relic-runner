@@ -1,0 +1,381 @@
+<title>Relic Runner Art Bible</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --ground: #f3eadb;
+  --panel: #e8dcc6;
+  --ink: #2a1a10;
+  --muted: #6e5a48;
+  --rule: #cdb99a;
+  --gold: #a8641c;
+  --jungle: #3f6a34;
+  --stage: #2a1c14;
+  --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --body: "IBM Plex Sans", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ground: #1c120c; --panel: #26190f; --ink: #f0e2c4; --muted: #b09a7c;
+    --rule: #4a3524; --gold: #e8a848; --jungle: #8cbc6a; --stage: #140c08;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #1c120c; --panel: #26190f; --ink: #f0e2c4; --muted: #b09a7c;
+  --rule: #4a3524; --gold: #e8a848; --jungle: #8cbc6a; --stage: #140c08;
+}
+* { box-sizing: border-box; }
+body { background: var(--ground); color: var(--ink); font: 15px/1.6 var(--body); padding-inline: 16px; padding-block: 0 64px; }
+.wrap { max-width: 1120px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--display); font-weight: 800; letter-spacing: 0.01em; text-wrap: balance; margin: 0; line-height: 1.02; }
+h1 { font-size: clamp(56px, 11vw, 132px); text-transform: uppercase; }
+h2 { font-size: clamp(34px, 5vw, 52px); text-transform: uppercase; }
+h3 { font-size: 24px; font-weight: 600; }
+p { max-width: 66ch; margin: 0; }
+.eyebrow { font: 500 12px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); }
+.muted { color: var(--muted); }
+img.px, canvas.px { image-rendering: pixelated; image-rendering: crisp-edges; display: block; max-width: 100%; }
+section { padding-block: 56px 8px; border-top: 1px solid var(--rule); margin-top: 48px; display: grid; gap: 20px; }
+code, .mono { font-family: var(--mono); font-size: 13px; }
+
+/* Hero banner: the adventurer running across the canyon plate. */
+.banner { position: relative; margin-top: 24px; border-radius: 4px; overflow: hidden; background: #2a1c14; }
+.banner img { width: 100%; height: auto; }
+.banner canvas { position: absolute; left: 0; bottom: 11%; width: 23%; height: auto; }
+.title { padding-block: 40px 8px; display: grid; gap: 14px; }
+.lede { font-size: 18px; max-width: 60ch; }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button { font: 500 13px var(--mono); color: var(--ink); background: var(--panel); border: 1px solid var(--rule); border-radius: 3px; padding: 7px 12px; cursor: pointer; }
+button[aria-pressed="true"] { background: var(--ink); color: var(--ground); border-color: var(--ink); }
+button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+.anims { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+.clip { display: grid; gap: 6px; }
+.clip canvas { width: 100%; height: auto; background: var(--stage); border-radius: 3px; }
+.clip .name { font: 600 14px var(--body); }
+.clip .meta { font: 12px var(--mono); color: var(--muted); }
+.clip .note { font-size: 13px; color: var(--muted); line-height: 1.4; }
+.group-label { grid-column: 1 / -1; font: 500 12px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); padding-top: 10px; border-bottom: 1px solid var(--rule); padding-bottom: 4px; }
+
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+figure { margin: 0; display: grid; gap: 8px; }
+figcaption { font-size: 13px; color: var(--muted); }
+figure img { width: 100%; height: auto; border-radius: 3px; }
+
+.swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+.sw { display: grid; gap: 4px; width: 88px; }
+.sw i { display: block; height: 40px; border-radius: 3px; border: 1px solid var(--rule); }
+.sw span { font: 11px/1.3 var(--mono); color: var(--muted); }
+
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 14px; }
+th, td { text-align: left; padding: 9px 12px 9px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font: 500 12px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+td:first-child { font-weight: 600; white-space: nowrap; }
+.tag { font: 500 11px var(--mono); padding: 2px 7px; border-radius: 10px; border: 1px solid currentColor; white-space: nowrap; }
+.tag.canyon { color: var(--gold); }
+.tag.jungle { color: var(--jungle); }
+
+.keys { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px 24px; }
+.key { display: flex; gap: 12px; align-items: baseline; border-bottom: 1px dashed var(--rule); padding-bottom: 8px; }
+kbd { font: 500 12px var(--mono); border: 1px solid var(--rule); border-bottom-width: 2px; border-radius: 3px; padding: 1px 6px; white-space: nowrap; background: var(--panel); }
+
+.mapbox { overflow-x: auto; background: var(--stage); border-radius: 3px; padding: 10px; }
+.mapbox canvas { width: 1200px; max-width: none; height: auto; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font: 12px var(--mono); color: var(--muted); }
+.legend b { display: inline-block; width: 10px; height: 10px; margin-right: 6px; vertical-align: -1px; }
+
+.maps { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+.map { border-top: 3px solid var(--gold); padding-top: 10px; display: grid; gap: 4px; }
+.map.j { border-color: var(--jungle); }
+.map .n { font: 500 12px var(--mono); color: var(--muted); }
+.status { font: 500 12px var(--mono); color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+
+<div class="wrap">
+  <header class="title">
+    <span class="eyebrow">Art bible · checkpoint 1 · hero, whip &amp; revolver</span>
+    <h1>Relic Runner</h1>
+    <p class="lede">A 90s cinematic platformer in the line of <em>Prince of Persia</em>, <em>Flashback</em> and <em>Another World</em>.
+      A fedora-wearing adventurer runs, skids, swings on a bullwhip and fires a revolver aimed with the mouse.
+      Every image on this page is rendered from the playable Godot build.</p>
+  </header>
+
+  <div class="banner" aria-label="The adventurer running across the canyon">
+    <img class="px" src="env_canyon.png" alt="Canyon biome plate: dusk sky, violet mesas, rust ridges, layered sandstone tiles" width="480" height="270">
+    <canvas class="px" id="bannerRun" width="256" height="336"></canvas>
+  </div>
+
+  <section id="hero">
+    <span class="eyebrow">01 · The hero</span>
+    <h2>Animation set</h2>
+    <p class="muted">A polygon cut-out on a 14-part bone rig, about 32px tall in a 480×270 frame, shown here at 2×.
+      Each clip is a few strong keyframes with Catmull-Rom easing, crossfaded in play. In the game the gun arm and head are
+      layered on top and track the mouse. These strips show the authored arms.</p>
+    <div class="toolbar" role="group" aria-label="Playback">
+      <button id="play" aria-pressed="true">Pause</button>
+      <button id="slow" aria-pressed="false">Slow-mo ¼×</button>
+      <span class="status" id="fps">24 fps render</span>
+    </div>
+    <div class="anims" id="anims"></div>
+  </section>
+
+  <section id="controls">
+    <span class="eyebrow">02 · Feel</span>
+    <h2>Controls</h2>
+    <div class="keys">
+      <div class="key"><kbd>A</kbd><kbd>D</kbd><span>Walk. Walking away from the mouse is a backpedal.</span></div>
+      <div class="key"><kbd>Shift</kbd><span>Hold to run. Stopping or reversing from a run skids.</span></div>
+      <div class="key"><kbd>Space</kbd><span>Jump. From a run, a long jump that clears 5 tiles.</span></div>
+      <div class="key"><kbd>W</kbd><kbd>S</kbd><span>Climb up or drop from a ledge. Reel the whip in or out.</span></div>
+      <div class="key"><kbd>LMB</kbd><span>Revolver shot at the cursor. 6 rounds, ricochets off rock.</span></div>
+      <div class="key"><kbd>RMB</kbd><span>Whip: swing on an anchor, yank a target, or crack.</span></div>
+      <div class="key"><kbd>R</kbd><span>Reload, one shell at a time.</span></div>
+      <div class="key"><kbd>Mouse</kbd><span>Attention. Head and gun follow it, and the body turns to it unless running.</span></div>
+    </div>
+  </section>
+
+  <section id="world">
+    <span class="eyebrow">03 · Biomes</span>
+    <h2>Rocky canyon &amp; jungle temple</h2>
+    <p class="muted">Limited palettes with ordered (Bayer) dithering, lit from the upper left. Three parallax layers per biome.
+      The rock is a 16-shape autotile set with two variants. Everything is generated by <code>tools/gen_art.py</code>.</p>
+    <div class="two">
+      <figure><img class="px" src="env_canyon.png" alt="Canyon plate" width="480" height="270"><figcaption>Canyon: dusk sun, flat-topped mesas, sandstone strata, dead scrub. Iron rings on chains are the whip anchors.</figcaption></figure>
+      <figure><img class="px" src="env_jungle.png" alt="Jungle plate" width="480" height="270"><figcaption>Jungle: leaf-clump canopy, vine curtains, the temple ziggurat in the haze, mossy block masonry. Branches are the whip anchors.</figcaption></figure>
+    </div>
+    <div class="two">
+      <figure><img class="px" src="canyon_tiles.png" alt="Canyon tileset" width="256" height="32"><figcaption>Canyon tiles: 16 edge masks × 2 variants.</figcaption></figure>
+      <figure><img class="px" src="jungle_tiles.png" alt="Jungle tileset" width="256" height="32"><figcaption>Jungle tiles: temple blocks with hanging moss.</figcaption></figure>
+    </div>
+    <h3>Palette</h3>
+    <div class="swatches" id="swatches"></div>
+  </section>
+
+  <section id="build">
+    <span class="eyebrow">04 · In the build</span>
+    <h2>Proving Grounds</h2>
+    <p class="muted">The test room covers the whole moveset. These frames were captured by the play-through bot, which passes all 31 steps at real speed.</p>
+    <div class="two">
+      <figure><img class="px" src="shots/swing.png" alt="Swinging on the whip over the chasm" width="480" height="270"><figcaption>Whip swing: a verlet rope from the hand to an iron ring, with the body hanging along the rope.</figcaption></figure>
+      <figure><img class="px" src="shots/ledge.png" alt="Hanging from a ledge" width="480" height="270"><figcaption>Jump, grab and hang. The lip sits 35px above the feet, so a 3-tile ledge is in reach.</figcaption></figure>
+      <figure><img class="px" src="shots/whip.png" alt="Whipping a crate" width="480" height="270"><figcaption>Whip pull: yanking a rigid-body crate. The straw dummies swing when they're shot.</figcaption></figure>
+      <figure><img class="px" src="shots/cave.png" alt="Torch-lit cave" width="480" height="270"><figcaption>Cave lighting: the ambient light dims on entry, and torches cast banded light with tile shadows.</figcaption></figure>
+    </div>
+    <h3>Layout</h3>
+    <div class="legend">
+      <span><b style="background:#9c6236"></b>rock</span><span><b style="background:#e8a848"></b>whip anchor</span>
+      <span><b style="background:#ff8a30"></b>torch</span><span><b style="background:#c8a860"></b>dummy</span>
+      <span><b style="background:#8a5a30"></b>crate</span><span><b style="background:#f0e2c4"></b>start / exit</span>
+      <span><b style="background:#3a2a40"></b>cave (dark zone)</span>
+    </div>
+    <div class="mapbox"><canvas id="map" class="px"></canvas></div>
+  </section>
+
+  <section id="cast">
+    <span class="eyebrow">05 · Next build</span>
+    <h2>Enemies</h2>
+    <p class="muted">Five enemies, rigged the same way as the hero. Each one reacts differently to the whip.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Enemy</th><th>Biome</th><th>Behaviour</th><th>Whip</th><th>Revolver</th></tr></thead>
+      <tbody>
+        <tr><td>Scorpion</td><td><span class="tag canyon">canyon</span></td><td>Scuttles along floors, tail-stings in close</td><td>Flips it over, stunned</td><td>1 shot</td></tr>
+        <tr><td>Rattlesnake</td><td><span class="tag canyon">canyon</span></td><td>Coiled in pits; the rattle warns of a lunging strike</td><td>Yanks it out of the pit</td><td>1 shot</td></tr>
+        <tr><td>Bandit gunman</td><td><span class="tag canyon">canyon</span> <span class="tag jungle">jungle</span></td><td>Takes cover, fires a rifle, pauses to reload</td><td>Pulls them off ledges</td><td>2 shots</td></tr>
+        <tr><td>Jaguar</td><td><span class="tag jungle">jungle</span></td><td>Stalks along the ground floor, pounces across gaps</td><td>A crack drives it back</td><td>3 shots</td></tr>
+        <tr><td>Stone Idol Guardian</td><td><span class="tag jungle">jungle</span></td><td>Slow and armoured; its chest glyph glows mid-attack</td><td>Too heavy to pull</td><td>Glyph only</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="maps">
+    <span class="eyebrow">06 · Next build</span>
+    <h2>Maps</h2>
+    <p class="muted">Three maps per biome, written as editable ASCII grids. The level metrics are a 3-tile grab reach, a 5-tile running jump and a 200px whip range.</p>
+    <div class="maps">
+      <div class="map"><span class="n">Canyon 1</span><h3>Dry Gulch</h3><p class="muted">Tutorial run: skid, jump, long jump, first anchor, one scorpion.</p></div>
+      <div class="map"><span class="n">Canyon 2</span><h3>Rattler Mesa</h3><p class="muted">A vertical climb of ledge grabs and crumbling ledges over snake pits.</p></div>
+      <div class="map"><span class="n">Canyon 3</span><h3>Bandit Mine</h3><p class="muted">A lantern-lit mine with swings over the shafts and a bandit ambush.</p></div>
+      <div class="map j"><span class="n">Jungle 1</span><h3>Canopy Run</h3><p class="muted">A chain of branch swings above a prowling jaguar.</p></div>
+      <div class="map j"><span class="n">Jungle 2</span><h3>Sunken Temple</h3><p class="muted">Spikes, crumbling floors, timed gates and pressure plates.</p></div>
+      <div class="map j"><span class="n">Jungle 3</span><h3>Idol Chamber</h3><p class="muted">The Guardian fight, then an escape by swinging.</p></div>
+    </div>
+  </section>
+</div>
+
+<script>
+const CLIPS = [
+  ["Locomotion", [
+    ["idle", 2.4, true, "Breathing, weight shift."],
+    ["idle_hat", 1.6, false, "Fidget after 7s idle: tugs the brim."],
+    ["walk", 0.6, true, "Plays backwards to backpedal."],
+    ["run", 0.4, true, "Forward lean, flight phase, pumping arms."],
+    ["skid", 0.28, false, "PoP stop: lean back, heel digs in, dust."],
+    ["skid_stop", 0.25, false, "Recovers to standing."],
+    ["turn", 0.3, false, "Pivot push-off after a reversing skid."],
+  ]],
+  ["Air", [
+    ["jump", 0.3, false, "Standing jump, reaching up to grab."],
+    ["long_jump", 0.45, false, "Running jump: a wide split stride."],
+    ["fall", 0.5, true, "Flailing arm."],
+    ["land", 0.22, false, "Absorbs the landing."],
+    ["roll", 0.5, false, "Falls over 100px: a forward roll."],
+  ]],
+  ["Ledges & whip", [
+    ["hang", 1.6, true, "Hands on the lip, legs sway."],
+    ["climb", 0.7, false, "Pull, knee up, onto the ledge."],
+    ["swing", 1.0, true, "Body hangs from the rope (rotated live)."],
+    ["whip_pull", 0.35, false, "Arm overlay: yank a target in."],
+    ["reload", 0.9, false, "Arm overlay: thumbing in shells."],
+  ]],
+  ["Damage", [
+    ["hurt", 0.35, false, "Knocked back."],
+    ["death", 1.2, false, "Falls backwards."],
+  ]],
+];
+const FW = 256, FH = 336, FPS = 24;
+const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+let playing = !reduce, speed = 1;
+const players = [];
+
+function makePlayer(canvas, name, loop) {
+  const img = new Image();
+  const ctx = canvas.getContext("2d");
+  const p = { img, ctx, loop, frames: 1, t: 0, ready: false };
+  img.onload = () => { p.frames = Math.max(1, Math.round(img.width / FW)); p.ready = true; draw(p); };
+  img.src = "frames/" + name + ".png";
+  players.push(p);
+  return p;
+}
+function frameIndex(p) {
+  const f = Math.floor(p.t * FPS);
+  if (p.loop) return f % p.frames;
+  const hold = Math.round(0.8 * FPS);
+  return Math.min(f % (p.frames + hold), p.frames - 1);
+}
+function draw(p) {
+  if (!p.ready) return;
+  p.ctx.imageSmoothingEnabled = false;
+  p.ctx.clearRect(0, 0, FW, FH);
+  p.ctx.drawImage(p.img, frameIndex(p) * FW, 0, FW, FH, 0, 0, FW, FH);
+}
+
+const grid = document.getElementById("anims");
+for (const [group, clips] of CLIPS) {
+  const label = document.createElement("div");
+  label.className = "group-label";
+  label.textContent = group;
+  grid.appendChild(label);
+  for (const [name, len, loop, note] of clips) {
+    const card = document.createElement("div");
+    card.className = "clip";
+    const c = document.createElement("canvas");
+    c.width = FW; c.height = FH; c.className = "px";
+    c.setAttribute("aria-label", name + " animation");
+    card.appendChild(c);
+    const n = document.createElement("div"); n.className = "name"; n.textContent = name.replace("_", " ");
+    const m = document.createElement("div"); m.className = "meta";
+    m.textContent = len.toFixed(2) + "s · " + (loop ? "loop" : "one-shot");
+    const t = document.createElement("div"); t.className = "note"; t.textContent = note;
+    card.append(n, m, t);
+    grid.appendChild(card);
+    makePlayer(c, name, loop);
+  }
+}
+makePlayer(document.getElementById("bannerRun"), "run", true);
+
+// Banner: run the hero across the plate.
+const bannerCanvas = document.getElementById("bannerRun");
+let bx = -0.25;
+
+let last = performance.now();
+function tick(now) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  if (playing) {
+    for (const p of players) { p.t += dt * speed; draw(p); }
+    bx += dt * speed * 0.12;
+    if (bx > 1.05) bx = -0.25;
+    bannerCanvas.style.left = (bx * 100).toFixed(2) + "%";
+  }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+if (!playing) bannerCanvas.style.left = "38%";
+
+const playBtn = document.getElementById("play"), slowBtn = document.getElementById("slow");
+function syncButtons() {
+  playBtn.textContent = playing ? "Pause" : "Play";
+  playBtn.setAttribute("aria-pressed", String(playing));
+  slowBtn.setAttribute("aria-pressed", String(speed < 1));
+  document.getElementById("fps").textContent = speed < 1 ? "6 fps effective (¼×)" : "24 fps render";
+}
+playBtn.onclick = () => { playing = !playing; syncButtons(); };
+slowBtn.onclick = () => { speed = speed < 1 ? 1 : 0.25; syncButtons(); };
+syncButtons();
+
+// Palette swatches straight from the rig and tiles.
+const PAL = [
+  ["#6e4b2a", "fedora"], ["#231710", "hat band"], ["#e0a870", "skin"], ["#8a5429", "jacket"],
+  ["#5e3719", "jacket shade"], ["#e3d3a4", "shirt"], ["#b99d6a", "trousers"], ["#3a2519", "boots"],
+  ["#2c2c33", "revolver"], ["#3b2616", "whip"], ["#b87c45", "canyon rock"], ["#ecc684", "canyon crust"],
+  ["#5e6a52", "temple stone"], ["#86c24a", "moss"],
+];
+const sw = document.getElementById("swatches");
+for (const [hex, label] of PAL) {
+  const d = document.createElement("div"); d.className = "sw";
+  d.innerHTML = `<i style="background:${hex}"></i><span>${label}<br>${hex}</span>`;
+  sw.appendChild(d);
+}
+
+// Proving Grounds, drawn from its ASCII source.
+const ROWS = [
+".............................................................................................###########################",
+".............................................................................................###########################",
+".............................................................................................###########################",
+".............................................................................................###########################",
+"...............................................................................o.............###########################",
+".............................................................................................###########################",
+".............................................................................................###########################",
+".............................................................................................###########################",
+".............................................................................................###########################",
+"..................................................o.......o.......o..........................###########################",
+".........................................................................................D...###########################",
+"....................................................................................########............................",
+"....................................................................................########............................",
+"........................................................................................................................",
+"........................................................................................................................",
+".....................................................................................................####...............",
+".....................................................................................................####...............",
+"........................D......................................................C..C...D...D.....T....####.......T...E...",
+"..............##############.....############...............................############################################",
+"..............##############.....############...............................############################################",
+"...P..........##############.....############...............................############################################",
+"################################################............................############################################",
+"################################################............................############################################",
+"################################################............T...............############################################",
+"########################################################################################################################",
+"########################################################################################################################",
+];
+const map = document.getElementById("map"), S = 10;
+map.width = ROWS[0].length * S; map.height = ROWS.length * S;
+const g = map.getContext("2d");
+g.fillStyle = "#3a2a40"; g.fillRect(93 * S, 0, 27 * S, 18 * S);
+const COL = { "#": "#9c6236", o: "#e8a848", T: "#ff8a30", D: "#c8a860", C: "#8a5a30", P: "#f0e2c4", E: "#f0e2c4" };
+ROWS.forEach((r, y) => [...r].forEach((ch, x) => {
+  if (!COL[ch]) return;
+  g.fillStyle = COL[ch];
+  if (ch === "#") g.fillRect(x * S, y * S, S, S);
+  else if (ch === "o") { g.beginPath(); g.arc(x * S + S / 2, y * S + S / 2, S / 2.5, 0, Math.PI * 2); g.fill(); }
+  else g.fillRect(x * S + 2, y * S + 2, S - 4, S - 4);
+}));
+g.font = "500 11px 'IBM Plex Mono', monospace"; g.fillStyle = "#f0e2c4";
+[["ledge climb", 14, 17], ["long jump", 27, 17], ["swing chain", 52, 13], ["range + perch", 80, 3], ["torch-lit cave", 96, 13]]
+  .forEach(([t, x, y]) => g.fillText(t, x * S, y * S));
+</script>

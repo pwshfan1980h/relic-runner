@@ -50,8 +50,26 @@ var _feet_pts: Array = []
 var _body_pts: Array = []
 
 
+static var _climb_patched := false
+
+
 func _init() -> void:
 	_build()
+	if not _climb_patched:
+		_climb_patched = true
+		_patch_climb()
+
+
+## The climb clip ends in the landing crouch 35px up (the hang height). Patch its final
+## hip height with the crouch's measured ground lock, so snapping onto the ledge and
+## playing "land" is seamless.
+func _patch_climb() -> void:
+	HeroAnims.build()
+	apply(HeroAnims.clips["land"]["keys"][0][1], 1)
+	var drop := hips.position.y - HIP_Y
+	var keys: Array = HeroAnims.clips["climb"]["keys"]
+	keys[-1][1]["hy"] = -35.0 + drop
+	apply(HeroAnims.BASE, 0)
 
 
 func _bone(name: String, parent: Node2D, pos: Vector2) -> Node2D:

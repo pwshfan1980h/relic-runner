@@ -267,51 +267,82 @@ def jungle_sky():
         top = 170 + periodic_noise(x, W, 41, 5) * 25
         for y in range(int(top), H):
             c.set(x, y, ramp(far, (y - top) / 60, x, y))
+    # God rays: diagonal dithered shafts of light.
+    for x in range(W):
+        for y in range(H):
+            band = math.sin((x + y * 0.45) * math.tau / 120)
+            if band > 0.86 and (band - 0.86) * 3.0 > bayer(x, y) and bayer(x + 1, y + 2) < 0.5 and y < 210:
+                c.set(x, y, hexc("#b8d898"))
     c.save("jungle_sky")
 
 
 def jungle_mid():
     c = Canvas(W, H)
-    pal = [hexc(c_) for c_ in ("#10261c", "#1c3c28", "#2c5634", "#3e7040")]
+    pal = [hexc(c_) for c_ in ("#0e2218", "#1a3824", "#2a5030", "#3e6a3a", "#5a8a44")]
     rng = random.Random(51)
-    # Tree trunks and canopy blobs.
-    for i in range(7):
-        tx = int(W * i / 7 + rng.randrange(-20, 20)) % W
-        tw = rng.randrange(6, 12)
-        for y in range(40, H):
-            for x in range(tx, tx + tw):
-                c.set(x % W, y, ramp(pal, 0.3 + 0.4 * (x - tx) / tw, x, y))
-    for _ in range(90):
-        bx, by, r = rng.randrange(W), rng.randrange(0, 90), rng.randrange(10, 26)
-        for y in range(by - r, by + r):
-            for x in range(bx - r, bx + r):
-                d = math.hypot(x - bx, y - by) / r
+    # Trunks: tall, slightly tapering, lit on the left.
+    for i in range(6):
+        tx = int(W * i / 6 + rng.randrange(-24, 24)) % W
+        tw = rng.randrange(7, 13)
+        for y in range(30, H):
+            wob = int(2 * math.sin(y * 0.03 + i))
+            for k in range(tw):
+                c.set((tx + k + wob) % W, y, ramp(pal[:3], 0.85 - k / tw, tx + k, y))
+    # Canopy: a ceiling of many small leaf clumps, lit from the upper left.
+    for x in range(W):
+        edge = 62 + periodic_noise(x, W, 52, 6) * 24
+        for y in range(0, int(edge)):
+            c.set(x, y, ramp(pal, 0.12 + 0.1 * (y / edge), x, y))
+    for _ in range(1400):
+        bx = rng.randrange(W)
+        edge = 62 + periodic_noise(bx, W, 52, 6) * 24
+        by = rng.uniform(-6, edge + 10)
+        r = rng.uniform(3.0, 7.5)
+        depth = by / (edge + 10)  # lower clumps are nearer the light
+        for y in range(int(by - r), int(by + r) + 1):
+            for x in range(int(bx - r), int(bx + r) + 1):
+                dx, dy = x - bx, y - by
+                d = math.hypot(dx, dy * 1.3) / r
                 if d < 1 and y >= 0:
-                    c.set(x % W, y, ramp(pal, 0.9 - d * 0.6 - (y - by + r) / (4 * r), x, y))
-    # Hanging vines.
-    for _ in range(26):
+                    lit = 0.25 + 0.45 * depth + 0.3 * max(0.0, -(dx + dy) / (1.6 * r))
+                    c.set(x % W, y, ramp(pal, lit - d * 0.15, x, y))
+    # Hanging vines with leaf nubs.
+    for _ in range(22):
         x = rng.randrange(W)
-        for y in range(rng.randrange(60, 120), rng.randrange(130, 230)):
-            c.set(x, y, pal[1])
-            if rng.random() < 0.08:
-                c.set(x + 1, y, pal[2])
+        top = int(70 + periodic_noise(x, W, 52, 6) * 28)
+        for y in range(top, top + rng.randrange(40, 140)):
+            xx = x + int(1.5 * math.sin(y * 0.08 + x))
+            c.set(xx % W, y, pal[1])
+            if rng.random() < 0.12:
+                c.set((xx + rng.choice((-1, 1))) % W, y, pal[3])
     c.save("jungle_mid")
 
 
 def jungle_near():
     c = Canvas(W, H)
-    pal = [hexc(c_) for c_ in ("#050c08", "#0c1a10", "#142a18")]
+    pal = [hexc(c_) for c_ in ("#040a06", "#0e1e10", "#1c3620")]
     rng = random.Random(61)
-    # Big fronds along the bottom.
-    for _ in range(40):
-        bx, by = rng.randrange(W), rng.randrange(220, 275)
-        ang = rng.uniform(-2.6, -0.5)
-        for i in range(rng.randrange(20, 45)):
-            x = bx + math.cos(ang) * i
-            y = by + math.sin(ang) * i + (i * i) * 0.02
-            w = max(1, int(5 * math.sin(math.pi * i / 45)))
-            for k in range(-w, w + 1):
-                c.set(int(x) % W, int(y + k), ramp(pal, 0.5 + k / (2 * w + 1), int(x), int(y)))
+    # Undergrowth band along the bottom.
+    for x in range(W):
+        top = 238 + periodic_noise(x, W, 62, 5) * 12
+        for y in range(int(top), H):
+            c.set(x, y, ramp(pal, 0.4 - (y - top) / 60.0, x, y))
+    # Fronds rooted in the undergrowth, arching up and over with leaflets.
+    for _ in range(26):
+        bx = rng.randrange(W)
+        by = 250 + rng.randrange(0, 12)
+        lean = rng.choice((-1, 1)) * rng.uniform(0.4, 1.0)
+        length = rng.randrange(30, 60)
+        for i in range(length):
+            t = i / length
+            x = bx + lean * i * 0.9
+            y = by - i * (1.0 - t) * 1.1
+            c.set(int(x) % W, int(y), pal[1])
+            if i % 3 == 0 and i > 4:
+                leaf = int(6 * math.sin(math.pi * t) + 1)
+                for k in range(1, leaf):
+                    c.set(int(x - lean * k * 0.3) % W, int(y + k), pal[2 if k < 2 else 1])
+                    c.set(int(x + lean * k * 0.3) % W, int(y + k * 0.6), pal[1])
     c.save("jungle_near")
 
 
