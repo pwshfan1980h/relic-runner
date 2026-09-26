@@ -3,6 +3,7 @@ extends Node2D
 ## `?autotest` in the web URL, or `-- --bot` on the command line, skips the wait.
 
 const MAIN := "res://scenes/main.tscn"
+const MENU := "res://scenes/menu.tscn"
 
 var _t := 0.0
 var _prompt: Label
@@ -37,7 +38,7 @@ func _ready() -> void:
 	if args.has("--gallery"):
 		add_child(Gallery.new())
 		return
-	var auto := args.has("--bot") or args.has("--shot")
+	var auto := args.has("--bot") or args.has("--shot") or args.has("--map")
 	if OS.has_feature("web"):
 		auto = auto or str(JavaScriptBridge.eval("location.search")).contains("autotest")
 	if auto:
@@ -76,4 +77,6 @@ func _start() -> void:
 		return
 	_started = true
 	Audio.play("whip_crack", -4.0)
-	get_tree().change_scene_to_file.call_deferred(MAIN)
+	var args := OS.get_cmdline_user_args()
+	var direct := args.has("--bot") or args.has("--map")
+	get_tree().change_scene_to_file.call_deferred(MAIN if direct else MENU)

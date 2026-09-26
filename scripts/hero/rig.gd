@@ -180,6 +180,25 @@ func _build() -> void:
 	_poly(gun, PackedVector2Array([Vector2(0.2, 2.6), Vector2(0.5, 2.6), Vector2(0.45, 5.2), Vector2(0.2, 5.2)]), STEEL_L, 10)
 
 
+## Palette swap: {original Color: new Color}. Far-side parts keep their depth tint.
+## Used to dress the same rig as other humans (the bandits).
+func recolor(swap: Dictionary) -> void:
+	for p in find_children("*", "Polygon2D", true, false):
+		var poly := p as Polygon2D
+		for from: Color in swap:
+			var to: Color = swap[from]
+			if poly.color.is_equal_approx(from):
+				poly.color = to
+			elif poly.color.is_equal_approx(Color(from * BACK_TINT, 1.0)):
+				poly.color = Color(to * BACK_TINT, 1.0)
+
+
+## Stretches the revolver into a rifle.
+func make_rifle() -> void:
+	gun.scale = Vector2(1.0, 2.4)
+	gun.position = Vector2(0, -1.5)
+
+
 ## Local muzzle point on the gun node.
 const MUZZLE := Vector2(0, 5.6)
 

@@ -275,6 +275,7 @@ class Animator:
 		_from = pose.duplicate()
 		clip_name = name
 		time = from_time
+		speed = 1.0  # a backpedal leaves speed negative; never carry it into the next clip
 		_blend = 0.0
 		_blend_len = blend
 

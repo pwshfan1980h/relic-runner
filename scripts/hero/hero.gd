@@ -65,12 +65,15 @@ var _recoil := 0.0
 var _shot_cd := 0.0
 var _reloading := false
 var _dead_t := 0.0
+var _invuln := 0.0
+var god := false  # test bot: take no damage
 var _flash: PointLight2D
 var _flash_e := 0.0
 var _whip_arm := 0.0  # weight of the far arm tracking the whip tip
 
 
 func _ready() -> void:
+	add_to_group("hero")
 	collision_layer = 2
 	collision_mask = 1
 	floor_snap_length = 4.0
@@ -135,6 +138,8 @@ func _physics_process(delta: float) -> void:
 	_recoil = move_toward(_recoil, 0.0, delta * 6.0)
 	_flash_e = move_toward(_flash_e, 0.0, delta * 30.0)
 	_flash.energy = _flash_e
+	_invuln = maxf(0.0, _invuln - delta)
+	rig.visible = state == S.DEAD or _invuln <= 0.0 or fmod(_invuln, 0.12) < 0.07
 	match state:
 		S.GROUND: _ground(delta)
 		S.AIR: _air(delta)
@@ -528,8 +533,9 @@ func _shoot() -> void:
 # --- Damage ------------------------------------------------------------------------
 
 func hurt(dmg: int, push: Vector2) -> void:
-	if state == S.DEAD:
+	if state == S.DEAD or _invuln > 0.0 or god:
 		return
+	_invuln = 1.0
 	hp -= dmg
 	health_changed.emit(hp)
 	Fx.add_shake(0.4)
@@ -538,8 +544,26 @@ func hurt(dmg: int, push: Vector2) -> void:
 		_die()
 		return
 	velocity += push
+	if state == S.HANG or state == S.CLIMB:
+		state = S.AIR
+		_grab_cd = 0.4
+		_enter_air(false)
 	if state == S.GROUND:
-		anim.play("hurt", 0.03, 0.0, true)
+		if push.y < 0.0:
+			_enter_air(false)
+		else:
+			anim.play("hurt", 0.03, 0.0, true)
+
+
+## Spikes, bottomless drops: straight to death regardless of hit points.
+func kill() -> void:
+	if state == S.DEAD or god:
+		return
+	hp = 0
+	health_changed.emit(hp)
+	Audio.play("hurt", 0.0)
+	Fx.add_shake(0.5)
+	_die()
 
 
 func _die() -> void:
@@ -560,8 +584,14 @@ func _dead(delta: float) -> void:
 		respawn()
 
 
+signal respawned
+
+
 func respawn() -> void:
 	global_position = spawn
+	_invuln = 1.0
+	_skidding = false
+	whip.release()
 	velocity = Vector2.ZERO
 	hp = MAX_HP
 	ammo = 6
@@ -570,6 +600,7 @@ func respawn() -> void:
 	ammo_changed.emit(ammo, false)
 	_enter_air(false)
 	anim.play("fall", 0.0)
+	respawned.emit()
 
 
 # --- Pose --------------------------------------------------------------------------

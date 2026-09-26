@@ -11,6 +11,7 @@ const KEYS := {
 	"jump": [KEY_SPACE],
 	"reload": [KEY_R],
 	"restart": [KEY_BACKSPACE],
+	"menu": [KEY_ESCAPE],
 }
 const MOUSE := {
 	"shoot": MOUSE_BUTTON_LEFT,

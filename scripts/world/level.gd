@@ -28,6 +28,7 @@ var _done := false
 
 
 func _ready() -> void:
+	map_id = GameState.map_id()
 	build(map_id)
 
 
@@ -97,9 +98,15 @@ func _tileset(biome: String) -> TileSet:
 	ts.add_source(src, 0)
 	var half := T / 2.0
 	var sq := PackedVector2Array([Vector2(-half, -half), Vector2(half, -half), Vector2(half, half), Vector2(-half, half)])
-	var occ := OccluderPolygon2D.new()
-	occ.polygon = sq
 	for m in 16:
+		# Occluders are inset on exposed faces: the inside of an occluder is in shadow,
+		# so a full square would leave every lit floor surface dark.
+		var occ := OccluderPolygon2D.new()
+		var x0 := -half + (0.0 if m & 8 else 3.0)
+		var x1 := half - (0.0 if m & 2 else 3.0)
+		var y0 := -half + (0.0 if m & 1 else 4.0)
+		var y1 := half - (0.0 if m & 4 else 3.0)
+		occ.polygon = PackedVector2Array([Vector2(x0, y0), Vector2(x1, y0), Vector2(x1, y1), Vector2(x0, y1)])
 		for v in 2:
 			var c := Vector2i(m, v)
 			src.create_tile(c)
@@ -152,41 +159,100 @@ func _backdrop(biome: String) -> void:
 
 
 func _entities() -> void:
+	# The hero first: enemies look them up when they enter the tree.
+	for y in h:
+		for x in w:
+			if cell(x, y) == "P":
+				hero = Hero.new()
+				hero.position = Vector2(x * T + T / 2.0, (y + 1) * T)
+				add_child(hero)
+				hero.spawn = hero.position
+	if hero == null:
+		push_error("map %s has no P" % map_id)
+		return
+	var biome: String = map["biome"]
+	var signs: Array = map.get("signs", [])
+	var sign_i := 0
 	for y in h:
 		for x in w:
 			var ch := cell(x, y)
 			var base := Vector2(x * T + T / 2.0, (y + 1) * T)
+			var node: Node2D = null
 			match ch:
-				"P":
-					hero = Hero.new()
-					hero.position = base
-					add_child(hero)
-					hero.spawn = base
 				"o":
 					var a := WhipAnchor.new()
 					a.position = Vector2(base.x, y * T + T / 2.0)
-					a.style = "branch" if map["biome"] == "jungle" else "ring"
+					a.style = "branch" if biome == "jungle" else "ring"
 					a.chain = _chain_len(x, y)
-					add_child(a)
+					node = a
 				"T":
-					var t := Torch.new()
-					t.position = Vector2(base.x, y * T + 14)
-					add_child(t)
+					node = Torch.new()
+					node.position = Vector2(base.x, y * T + 14)
 				"C":
-					var c := Crate.new()
-					c.position = base - Vector2(0, Crate.SIZE / 2.0)
-					add_child(c)
+					node = Crate.new()
+					node.position = base - Vector2(0, Crate.SIZE / 2.0)
 				"D":
-					var d := Dummy.new()
-					d.position = base
-					add_child(d)
+					node = Dummy.new()
 				"E":
 					_exit_pos = base
-					var e := ExitDoor.new()
-					e.position = base
-					add_child(e)
-	if hero == null:
-		push_error("map %s has no P" % map_id)
+					node = ExitDoor.new()
+				"^":
+					var sp := Hazards.Spikes.new()
+					sp.biome = biome
+					node = sp
+				"c":
+					var cr := Hazards.Crumble.new()
+					cr.biome = biome
+					cr.position = Vector2(x * T, y * T)
+					add_child(cr)
+					hero.respawned.connect(cr.reset)
+				"|":
+					if cell(x, y - 1) != "|":
+						var g := Hazards.Gate.new()
+						var n := 0
+						while cell(x, y + n) == "|":
+							n += 1
+						g.height = n * T
+						g.position = Vector2(x * T, y * T)
+						add_child(g)
+				"_":
+					node = Hazards.Plate.new()
+				"K":
+					node = Hazards.Checkpoint.new()
+				"L":
+					# Hangs from the rock above, ~3 tiles down so its light reaches the floor.
+					var l := Hazards.Lantern.new()
+					var up := _chain_len(x, y)
+					l.rope = up + 56.0
+					l.position = Vector2(base.x, y * T + T / 2.0 - up)
+					node = l
+				"?":
+					var sg := Hazards.Sign.new()
+					sg.text = signs[sign_i] if sign_i < signs.size() else ""
+					sign_i += 1
+					node = sg
+				"s":
+					node = Scorpion.new()
+				"r":
+					node = Rattlesnake.new()
+				"B":
+					node = Bandit.new()
+				"J":
+					node = Jaguar.new()
+				"G":
+					var gd := Guardian.new()
+					gd.defeated.connect(_on_boss_defeated)
+					node = gd
+			if node:
+				if node.position == Vector2.ZERO:
+					node.position = base
+				add_child(node)
+
+
+func _on_boss_defeated() -> void:
+	hud.banner("THE GUARDIAN FALLS")
+	for g in get_tree().get_nodes_in_group("gate"):
+		(g as Hazards.Gate).trigger(true)
 
 
 ## Anchors hang on a chain from the rock above, or from off the top of the screen.
@@ -218,10 +284,21 @@ func _physics_process(delta: float) -> void:
 	# Lighting: caves dim the ambient so torches and muzzle flashes carry the scene.
 	var want: Color = map["dark_ambient"] if _in_dark(hero.global_position + Vector2(0, -16)) else map["ambient"]
 	_ambient.color = _ambient.color.lerp(want, minf(1.0, delta * 3.0))
-	if not _done and _exit_pos != Vector2.INF and hero.global_position.distance_to(_exit_pos) < 10.0:
+	if not _done and _exit_pos != Vector2.INF and hero.global_position.distance_to(_exit_pos) < 10.0 \
+			and hero.state != Hero.S.DEAD:
 		_done = true
 		Audio.play("level_clear", -4.0)
 		hud.banner("TRIAL COMPLETE")
 		cleared.emit()
+		if not OS.get_cmdline_user_args().has("--bot"):
+			get_tree().create_timer(2.5).timeout.connect(GameState.next)
+	# Signposts: show their hint while the hero stands near one.
+	var hint := ""
+	for sg in get_tree().get_nodes_in_group("sign"):
+		if (sg as Node2D).global_position.distance_to(hero.global_position) < 28.0:
+			hint = (sg as Hazards.Sign).text
+	hud.hint(hint)
 	if Input.is_action_just_pressed("restart"):
 		get_tree().reload_current_scene()
+	if Input.is_action_just_pressed("menu"):
+		GameState.menu()

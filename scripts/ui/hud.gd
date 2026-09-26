@@ -10,6 +10,7 @@ var _draw_node: Control
 var _title: Label
 var _hint: Label
 var _banner: Label
+var _sign: Label
 var _t := 0.0
 var _spin := 0.0
 
@@ -25,6 +26,10 @@ func _ready() -> void:
 	_hint = _label(Vector2(0, 252), 8, HORIZONTAL_ALIGNMENT_CENTER)
 	_hint.text = "WASD MOVE   SHIFT RUN   SPACE JUMP   LMB REVOLVER   RMB WHIP   R RELOAD"
 	_banner = _label(Vector2(0, 110), 16, HORIZONTAL_ALIGNMENT_CENTER)
+	_sign = _label(Vector2(40, 214), 8, HORIZONTAL_ALIGNMENT_CENTER)
+	_sign.size = Vector2(400, 30)
+	_sign.autowrap_mode = TextServer.AUTOWRAP_WORD
+	_sign.label_settings.font_color = Color("#ffe0a0")
 
 
 func _label(pos: Vector2, size: int, align: HorizontalAlignment) -> Label:
@@ -52,6 +57,10 @@ func bind(hero: Hero, title: String) -> void:
 func banner(text: String) -> void:
 	_banner.text = text
 	_banner.modulate.a = 1.0
+
+
+func hint(text: String) -> void:
+	_sign.text = text.to_upper()
 
 
 func _process(delta: float) -> void:

@@ -353,11 +353,137 @@ def amb_jungle_loop():
     return loopify(out, 0.4)
 
 
+# --- Enemies & hazards ------------------------------------------------------
+
+def hit_flesh():
+    out = silence(0.15)
+    mix(out, env(lowpass(noise(0.1, 71), 1400), decay(0.02)), 0, 0.9)
+    mix(out, env(osc(lambda t: 180 - 200 * t, 0.1), decay(0.03)), 0, 0.6)
+    return out
+
+
+def scorpion_hiss():
+    return env(bandpass(noise(0.3, 72), 3000, 8000), lambda t: min(1, t / 0.05) * max(0, 1 - t / 0.3))
+
+
+def rattle():
+    out = silence(0.4)
+    for i in range(22):
+        mix(out, env(highpass(noise(0.01, 80 + i), 3500), decay(0.004)), i * 0.016, 0.7 + 0.3 * math.sin(i))
+    return out
+
+
+def snake_hiss():
+    return env(bandpass(noise(0.35, 73), 2500, 9000), lambda t: min(1, t / 0.02) * math.exp(-t / 0.15))
+
+
+def rifle():
+    out = gunshot()
+    return lowpass(out, 5000)
+
+
+def bandit_groan():
+    g = osc(lambda t: 150 - 70 * t, 0.5, "saw")
+    return env(bandpass(g, 250, 1200), lambda t: min(1, t / 0.03) * max(0, 1 - t / 0.5))
+
+
+def jaguar_growl():
+    base = osc(lambda t: 70 + 10 * math.sin(t * 23), 0.7, "saw")
+    grit = [b * (0.6 + 0.4 * n) for b, n in zip(base, lowpass(noise(0.7, 74), 60))]
+    return env(lowpass(grit, 900), lambda t: min(1, t / 0.1) * max(0, 1 - t / 0.7))
+
+
+def jaguar_roar():
+    base = osc(lambda t: 120 + 140 * math.sin(math.pi * min(1, t / 0.5)), 0.6, "saw")
+    return env(drive(bandpass(base, 150, 1800), 2.0), lambda t: min(1, t / 0.03) * max(0, 1 - t / 0.6))
+
+
+def stone_grind():
+    n = lowpass(brown(0.9, 75), 500)
+    rng = random.Random(76)
+    out = env(n, lambda t: math.sin(math.pi * t / 0.9))
+    for _ in range(12):
+        mix(out, env(lowpass(noise(0.02, rng.randrange(999)), 1500), decay(0.006)), rng.uniform(0, 0.85), 0.4)
+    return out
+
+
+def slam():
+    out = silence(1.0)
+    mix(out, env(osc(lambda t: 60 - 25 * t, 0.6), decay(0.18)), 0, 1.0)
+    mix(out, env(lowpass(noise(0.6, 77), 700), decay(0.12)), 0, 0.9)
+    mix(out, env(lowpass(brown(0.9, 78), 400), decay(0.3)), 0.05, 0.5)
+    return drive(out, 1.5)
+
+
+def glyph_hit():
+    out = silence(0.6)
+    for f, g in ((880, 0.5), (1320, 0.35), (1760, 0.25)):
+        mix(out, env(osc(f, 0.6), decay(0.18)), 0, g)
+    mix(out, env(highpass(noise(0.05, 79), 2000), decay(0.01)), 0, 0.5)
+    return out
+
+
+def stone_crumble():
+    out = silence(1.4)
+    rng = random.Random(81)
+    for _ in range(40):
+        at = rng.uniform(0, 1.1)
+        mix(out, env(lowpass(noise(0.08, rng.randrange(999)), rng.uniform(400, 1800)), decay(0.03)), at, rng.uniform(0.3, 1.0))
+    mix(out, slam()[:int(0.8 * SR)], 0, 0.6)
+    return out
+
+
+def spike_hit():
+    out = silence(0.3)
+    mix(out, env(osc(2100, 0.2), decay(0.03)), 0, 0.4)
+    mix(out, hit_flesh(), 0, 1.0)
+    return out
+
+
+def crumble_crack():
+    out = silence(0.5)
+    rng = random.Random(82)
+    for _ in range(10):
+        mix(out, env(highpass(noise(0.01, rng.randrange(999)), 1200), decay(0.005)), rng.uniform(0, 0.35), 0.6)
+    mix(out, env(lowpass(noise(0.3, 83), 800), decay(0.1)), 0.3, 0.8)
+    return out
+
+
+def gate_rumble():
+    n = lowpass(brown(0.8, 84), 300)
+    out = env(n, lambda t: math.sin(math.pi * t / 0.8))
+    for i in range(8):
+        mix(out, _click(900 + i * 20, 90 + i, 0.02), i * 0.1, 0.3)
+    return out
+
+
+def plate_click():
+    out = silence(0.3)
+    mix(out, env(lowpass(noise(0.05, 85), 1200), decay(0.02)), 0, 0.8)
+    mix(out, env(osc(320, 0.2), decay(0.05)), 0.01, 0.6)
+    return out
+
+
+def gate_tick():
+    return _click(1500, 86, 0.01)
+
+
+def checkpoint():
+    out = silence(0.8)
+    for n, at in ((67, 0.0), (72, 0.12)):
+        tone = osc(midi(n + 12), 0.5, "triangle")
+        mix(out, env(tone, decay(0.18)), at, 0.5)
+    return out
+
+
 SFX = [
     gunshot, ricochet, empty_click, reload_open, reload_shell, reload_spin,
     whip_throw, whip_crack, whip_latch,
     step_dirt, skid_dirt, jump, land, roll, grab, climb, hurt,
     hit_wood, hit_straw, level_clear, amb_canyon_loop, amb_jungle_loop,
+    hit_flesh, scorpion_hiss, rattle, snake_hiss, rifle, bandit_groan, jaguar_growl, jaguar_roar,
+    stone_grind, slam, glyph_hit, stone_crumble, spike_hit, crumble_crack, gate_rumble, plate_click,
+    gate_tick, checkpoint,
 ]
 
 
