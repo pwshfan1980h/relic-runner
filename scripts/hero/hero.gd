@@ -1,0 +1,646 @@
+class_name Hero
+extends CharacterBody2D
+## The adventurer. Prince-of-Persia momentum on the ground (skids, pivots, running
+## long jump, ledge hang/climb), a bullwhip grapple on right click (swing on anchors,
+## yank whippable actors) and a mouse-aimed revolver on left click.
+## The head and gun arm follow the mouse; the body faces the mouse unless running.
+
+signal died
+signal ammo_changed(ammo: int, reloading: bool)
+signal health_changed(hp: int)
+
+enum S { GROUND, AIR, HANG, CLIMB, SWING, ROLL, DEAD }
+
+const WALK := 44.0
+const RUN := 125.0
+const ACCEL_WALK := 700.0
+const ACCEL_RUN := 380.0
+const SKID_DECEL := 360.0
+const FAST := 85.0  # above this, stopping/turning means a skid
+const GRAVITY := 900.0
+const MAX_FALL := 430.0
+const JUMP_V := 255.0
+const LONG_JUMP_V := 215.0
+const LONG_JUMP_X := 185.0
+const AIR_ACCEL := 240.0
+const HANG_H := 35.0  # feet-to-ledge-lip when hanging
+const GRIP_H := 37.0  # feet-to-hand when swinging
+const COYOTE := 0.08
+const BUFFER := 0.12
+const ROLL_FALL := 100.0
+const HURT_FALL := 190.0
+const PUMP := 260.0
+const REEL := 80.0
+const MAX_HP := 3
+const SHOT_RANGE := 420.0
+const SHOT_COOLDOWN := 0.22
+
+var state := S.AIR
+var facing := 1
+var hp := MAX_HP
+var ammo := 6
+var rig: HeroRig
+var anim: HeroAnims.Animator
+var whip: Whip
+var spawn := Vector2.ZERO
+var bot_input := {}  # test bot overrides: action -> bool, "aim" -> Vector2
+var whip_candidate: Array = []  # what a right click would hit now (for the crosshair)
+
+var _coyote := 0.0
+var _buffer := 0.0
+var _skidding := false
+var _turn_after := false
+var _turn_t := 0.0
+var _peak_y := 0.0
+var _long := false
+var _grab_cd := 0.0
+var _ledge := Vector2.ZERO
+var _idle_t := 0.0
+var _anchor: Node2D
+var _rope_len := 0.0
+var _swing_t := 0.0
+var _reel_to := -1.0  # rope length being reeled toward (lifts a grounded hero off their feet)
+var _aim_w := 1.0
+var _recoil := 0.0
+var _shot_cd := 0.0
+var _reloading := false
+var _dead_t := 0.0
+var _flash: PointLight2D
+var _flash_e := 0.0
+var _whip_arm := 0.0  # weight of the far arm tracking the whip tip
+var _crouch_drop := 0.0
+
+
+func _ready() -> void:
+	collision_layer = 2
+	collision_mask = 1
+	floor_snap_length = 4.0
+	floor_max_angle = deg_to_rad(50)
+	var shape := CollisionShape2D.new()
+	var rect := RectangleShape2D.new()
+	rect.size = Vector2(8, 28)
+	shape.shape = rect
+	shape.position = Vector2(0, -14)
+	add_child(shape)
+	rig = HeroRig.new()
+	rig.z_index = 5
+	add_child(rig)
+	anim = HeroAnims.Animator.new()
+	anim.event.connect(_on_anim_event)
+	whip = Whip.new()
+	whip.hero = self
+	add_child(whip)
+	whip.latched.connect(_on_whip_latched)
+	_flash = PointLight2D.new()
+	_flash.texture = Lights.radial(96)
+	_flash.color = Color("#ffd27a")
+	_flash.energy = 0.0
+	add_child(_flash)
+	_measure_crouch()
+	spawn = global_position
+	_peak_y = global_position.y
+	anim.play("fall", 0.0)
+
+
+## The climb clip ends in the landing crouch 35px up; patch its hip height so that
+## snapping onto the ledge and playing "land" is seamless.
+func _measure_crouch() -> void:
+	var land: Dictionary = HeroAnims.clips["land"]
+	rig.apply(land["keys"][0][1], 1)
+	_crouch_drop = rig.hips.position.y - HeroRig.HIP_Y
+	var climb_keys: Array = HeroAnims.clips["climb"]["keys"]
+	climb_keys[-1][1]["hy"] = -HANG_H + _crouch_drop
+
+
+# --- Input (overridable by the test bot) ---------------------------------------
+
+func _held(action: String) -> bool:
+	if bot_input.has(action):
+		return bot_input[action]
+	return Input.is_action_pressed(action)
+
+
+func _pressed(action: String) -> bool:
+	if bot_input.has(action + "!"):
+		var v: bool = bot_input[action + "!"]
+		bot_input.erase(action + "!")
+		return v
+	return Input.is_action_just_pressed(action) and not bot_input.has(action)
+
+
+func aim_point() -> Vector2:
+	if bot_input.has("aim"):
+		return bot_input["aim"]
+	return get_global_mouse_position()
+
+
+func _axis() -> float:
+	return float(_held("right")) - float(_held("left"))
+
+
+# --- Main loop -------------------------------------------------------------------
+
+func _physics_process(delta: float) -> void:
+	_buffer = BUFFER if _pressed("jump") else maxf(0.0, _buffer - delta)
+	_grab_cd = maxf(0.0, _grab_cd - delta)
+	_shot_cd = maxf(0.0, _shot_cd - delta)
+	_recoil = move_toward(_recoil, 0.0, delta * 6.0)
+	_flash_e = move_toward(_flash_e, 0.0, delta * 30.0)
+	_flash.energy = _flash_e
+	match state:
+		S.GROUND: _ground(delta)
+		S.AIR: _air(delta)
+		S.HANG: _hang(delta)
+		S.CLIMB: _climb(delta)
+		S.SWING: _swing(delta)
+		S.ROLL: _roll(delta)
+		S.DEAD: _dead(delta)
+	_weapons()
+	_pose(delta)
+
+
+func _ground(delta: float) -> void:
+	var x := _axis()
+	var running := _held("run")
+	var vx := velocity.x
+	if _skidding:
+		vx = move_toward(vx, 0.0, SKID_DECEL * delta)
+		_turn_after = x != 0.0 and signf(x) != float(facing)
+		if Engine.get_physics_frames() % 6 == 0:
+			Fx.puff(global_position + Vector2(facing * 5, 0), 2, Color("#c8a070"), Vector2(facing * 30, 0), 12.0)
+		if absf(vx) < 14.0:
+			_skidding = false
+			if _turn_after:
+				_set_facing(-facing)
+				vx = facing * 40.0
+				_turn_t = 0.3
+				anim.play("turn", 0.04)
+			else:
+				vx = 0.0
+				anim.play("skid_stop", 0.06)
+	elif absf(vx) > FAST and _turn_t <= 0.0 and (x == 0.0 or signf(x) != signf(vx)):
+		_skidding = true
+		_set_facing(int(signf(vx)))
+		anim.play("skid", 0.06)
+		Audio.play("skid_dirt", -6.0, 1.0, 0.1)
+	else:
+		var target := x * (RUN if running else WALK)
+		var acc := ACCEL_RUN if running and absf(target) > absf(vx) else ACCEL_WALK
+		vx = move_toward(vx, target, acc * delta)
+	_turn_t = maxf(0.0, _turn_t - delta)
+	velocity.x = vx
+	velocity.y = 0.0
+
+	# Facing: momentum while running/skidding, otherwise attention follows the mouse.
+	if not _skidding and _turn_t <= 0.0:
+		if absf(vx) > FAST:
+			_set_facing(int(signf(vx)))
+		else:
+			_face_mouse()
+
+	if _buffer > 0.0:
+		_jump()
+		return
+	move_and_slide()
+	if not is_on_floor():
+		# Walked off an edge: a little coyote time before we count as falling.
+		_coyote = COYOTE
+		_enter_air(false)
+		return
+	_pick_ground_anim(delta)
+
+
+func _pick_ground_anim(delta: float) -> void:
+	var vx := velocity.x
+	if _skidding or anim.clip_name == "turn" and not anim.finished():
+		return
+	var moving := absf(vx) > 5.0
+	var one_shot := anim.clip_name in ["land", "skid_stop", "idle_hat", "hurt"] and not anim.finished()
+	if absf(vx) > FAST:
+		anim.play("run", 0.12)
+		anim.speed = clampf(absf(vx) / RUN, 0.6, 1.3)
+		_idle_t = 0.0
+	elif moving:
+		if not one_shot or anim.clip_name == "idle_hat":
+			anim.play("walk", 0.12)
+			# Walking away from the mouse = backpedalling.
+			anim.speed = clampf(absf(vx) / WALK, 0.3, 1.6) * (1.0 if signf(vx) == float(facing) else -1.0)
+		_idle_t = 0.0
+	elif not one_shot:
+		_idle_t += delta
+		if _idle_t > 7.0:
+			_idle_t = 0.0
+			anim.play("idle_hat", 0.15)
+		else:
+			anim.play("idle", 0.15)
+			anim.speed = 1.0
+	else:
+		anim.speed = 1.0
+
+
+func _jump() -> void:
+	_buffer = 0.0
+	_coyote = 0.0
+	_skidding = false
+	if absf(velocity.x) > 90.0:
+		_long = true
+		velocity = Vector2(signf(velocity.x) * LONG_JUMP_X, -LONG_JUMP_V)
+		anim.play("long_jump", 0.06)
+		Audio.play("jump", -4.0, 0.9, 0.05)
+	else:
+		_long = false
+		velocity.y = -JUMP_V
+		anim.play("jump", 0.06)
+		Audio.play("jump", -6.0, 1.05, 0.05)
+	Fx.puff(global_position, 4)
+	_enter_air(true)
+	move_and_slide()
+
+
+func _enter_air(jumped: bool) -> void:
+	state = S.AIR
+	_peak_y = global_position.y
+	if not jumped:
+		_long = absf(velocity.x) > 90.0
+
+
+func _air(delta: float) -> void:
+	_coyote = maxf(0.0, _coyote - delta)
+	if _buffer > 0.0 and _coyote > 0.0:
+		_jump()
+		return
+	velocity.y = minf(MAX_FALL, velocity.y + GRAVITY * delta)
+	var x := _axis()
+	if x != 0.0:
+		if velocity.x == 0.0 or signf(x) == signf(velocity.x):
+			velocity.x = move_toward(velocity.x, x * maxf(WALK * 1.3, absf(velocity.x)), AIR_ACCEL * delta)
+		else:
+			velocity.x = move_toward(velocity.x, 0.0, AIR_ACCEL * 1.3 * delta)
+	if absf(velocity.x) < 60.0:
+		_face_mouse()
+	elif not _long:
+		_set_facing(int(signf(velocity.x)))
+	_peak_y = minf(_peak_y, global_position.y)
+
+	if velocity.y > -40.0 and _grab_cd <= 0.0 and not _held("down"):
+		var lip := _find_ledge()
+		if lip != Vector2.INF:
+			_grab(lip)
+			return
+	move_and_slide()
+	if is_on_floor():
+		_land()
+		return
+	if velocity.y > 90.0 and anim.clip_name != "fall" and (anim.finished() or not _long):
+		anim.play("fall", 0.2)
+
+
+func _land() -> void:
+	var fall := global_position.y - _peak_y
+	state = S.GROUND
+	_long = false
+	Fx.puff(global_position, 5 if fall > 40.0 else 3)
+	if fall > HURT_FALL:
+		hurt(1, Vector2.ZERO)
+	if fall > ROLL_FALL and state != S.DEAD:
+		state = S.ROLL
+		anim.play("roll", 0.05, 0.0, true)
+		Audio.play("roll", -4.0)
+		Fx.add_shake(0.25)
+		return
+	if absf(velocity.x) > FAST:
+		anim.play("run", 0.08)
+	else:
+		anim.play("land", 0.03, 0.0, true)
+	Audio.play("land", -6.0 if fall < 40.0 else -2.0, 1.0, 0.1)
+
+
+func _roll(delta: float) -> void:
+	velocity.x = move_toward(velocity.x, facing * 60.0, 200.0 * delta)
+	velocity.y = minf(MAX_FALL, velocity.y + GRAVITY * delta)
+	move_and_slide()
+	if anim.finished():
+		state = S.GROUND if is_on_floor() else S.AIR
+		if state == S.AIR:
+			_enter_air(false)
+
+
+# --- Ledges --------------------------------------------------------------------
+
+## The lip of a ledge right in front of our hands, or Vector2.INF.
+func _find_ledge() -> Vector2:
+	var space := get_world_2d().direct_space_state
+	var f := float(facing)
+	var p := global_position
+	var hand_y := p.y - HANG_H
+	var q := PhysicsRayQueryParameters2D.create(p + Vector2(0, -HANG_H + 4), p + Vector2(f * 10, -HANG_H + 4), 1)
+	var wall := space.intersect_ray(q)
+	if not wall or absf(wall.normal.x) < 0.9:
+		return Vector2.INF
+	var wx: float = wall.position.x
+	var down := PhysicsRayQueryParameters2D.create(Vector2(wx + f * 2, hand_y - 8), Vector2(wx + f * 2, hand_y + 6), 1)
+	var top := space.intersect_ray(down)
+	if not top or top.normal.y > -0.9:
+		return Vector2.INF
+	var lip_y: float = top.position.y
+	if lip_y < hand_y - 7.0 or lip_y > hand_y + 6.0:
+		return Vector2.INF
+	return Vector2(wx, lip_y)
+
+
+func _grab(lip: Vector2) -> void:
+	state = S.HANG
+	_ledge = lip
+	velocity = Vector2.ZERO
+	global_position = Vector2(lip.x - facing * 4.5, lip.y + HANG_H)
+	anim.play("hang", 0.05)
+	Audio.play("grab", -4.0, 1.0, 0.1)
+	Fx.puff(lip, 2, Color("#c8a070"))
+
+
+func _hang(_delta: float) -> void:
+	var x := _axis()
+	if _held("down") or (x != 0.0 and signf(x) != float(facing)):
+		state = S.AIR
+		_grab_cd = 0.3
+		global_position.x -= facing * 1.0
+		_enter_air(false)
+		anim.play("fall", 0.1)
+		return
+	if (_held("up") or _buffer > 0.0) and _room_on_top():
+		_buffer = 0.0
+		state = S.CLIMB
+		anim.play("climb", 0.04)
+		Audio.play("climb", -4.0)
+
+
+func _room_on_top() -> bool:
+	var params := PhysicsShapeQueryParameters2D.new()
+	var rect := RectangleShape2D.new()
+	rect.size = Vector2(8, 26)
+	params.shape = rect
+	params.collision_mask = 1
+	params.transform = Transform2D(0.0, Vector2(_ledge.x + facing * 8.0, _ledge.y - 14.0))
+	return get_world_2d().direct_space_state.intersect_shape(params, 1).is_empty()
+
+
+func _climb(_delta: float) -> void:
+	if anim.finished():
+		global_position += Vector2(facing * 8.0, -HANG_H)
+		state = S.GROUND
+		velocity = Vector2.ZERO
+		anim.play("land", 0.0, 0.0, true)
+
+
+# --- Whip swing --------------------------------------------------------------------
+
+func _on_whip_latched(kind: int, target: Variant) -> void:
+	if kind == Whip.Kind.ANCHOR and state != S.DEAD and state != S.HANG and state != S.CLIMB:
+		_anchor = target
+		_rope_len = clampf((global_position + Vector2(0, -GRIP_H)).distance_to(_anchor.global_position), 20.0, Whip.RANGE)
+		_reel_to = -1.0
+		if state == S.GROUND:
+			# Tarzan lift: reel the rope in a little so the hero leaves the ground.
+			_reel_to = _rope_len - 12.0
+		state = S.SWING
+		_swing_t = 0.0
+		_skidding = false
+		anim.play("swing", 0.1)
+	elif kind == Whip.Kind.ACTOR and is_instance_valid(target):
+		anim.play_overlay("whip_pull")
+		if target.has_method("whip_pull"):
+			target.whip_pull(global_position + Vector2(0, -16))
+
+
+func _swing(delta: float) -> void:
+	if not is_instance_valid(_anchor):
+		_release_swing()
+		return
+	_swing_t += delta
+	var a := _anchor.global_position
+	var grip := global_position + Vector2(0, -GRIP_H)
+	velocity.y += GRAVITY * delta
+	var r := grip - a
+	var tang := r.orthogonal().normalized()
+	if tang.x < 0.0:
+		tang = -tang
+	var x := _axis()
+	# Pumping only works on the downswing half, like kicking on a playground swing.
+	if x != 0.0:
+		velocity += tang * x * PUMP * delta
+	if _held("up"):
+		_rope_len = maxf(20.0, _rope_len - REEL * delta)
+		_reel_to = -1.0
+	elif _held("down"):
+		_rope_len = minf(Whip.RANGE, _rope_len + REEL * delta)
+		_reel_to = -1.0
+	elif _reel_to > 0.0:
+		_rope_len = move_toward(_rope_len, _reel_to, 120.0 * delta)
+	var next := grip + velocity * delta
+	var d := next - a
+	if d.length() > _rope_len:
+		next = a + d.normalized() * _rope_len
+		velocity = (next - grip) / delta
+	velocity *= 1.0 - 0.15 * delta
+	if absf(velocity.x) > 20.0:
+		_set_facing(int(signf(velocity.x)))
+	move_and_slide()
+	if _pressed("whip") or _buffer > 0.0:
+		_buffer = 0.0
+		_release_swing(true)
+		return
+	if is_on_floor() and _swing_t > 0.25:
+		_release_swing()
+		state = S.GROUND
+		anim.play("land", 0.05, 0.0, true)
+
+
+func _release_swing(boost := false) -> void:
+	whip.release()
+	_anchor = null
+	if boost:
+		velocity *= 1.08
+		velocity.y -= 60.0
+		Audio.play("jump", -6.0, 1.1, 0.05)
+	if state == S.SWING:
+		_enter_air(true)
+		_long = absf(velocity.x) > 90.0
+		anim.play("long_jump" if _long else "jump", 0.1)
+
+
+# --- Weapons -----------------------------------------------------------------------
+
+func _can_act() -> bool:
+	return state in [S.GROUND, S.AIR, S.SWING]
+
+
+func _weapons() -> void:
+	whip_candidate = []
+	if state == S.DEAD:
+		return
+	var hand_b := rig.point("hand_b", Vector2(0, 1))
+	if _can_act() and whip.can_throw() and state != S.SWING:
+		whip_candidate = whip.pick(hand_b, aim_point())
+	if _can_act() and state != S.SWING and whip.can_throw() and _pressed("whip"):
+		whip.throw(hand_b, aim_point())
+		_whip_arm = 1.0
+	whip.step(get_physics_process_delta_time(), hand_b)
+	rig.whip_coil.visible = not whip.active()
+
+	if _pressed("reload") and ammo < 6 and not _reloading:
+		_start_reload()
+	if _pressed("shoot") and _can_act() and not _reloading and state != S.ROLL:
+		if ammo <= 0:
+			Audio.play("empty_click", -4.0)
+			_start_reload()
+		elif _shot_cd <= 0.0:
+			_shoot()
+	if _reloading and not anim.overlay_active():
+		_reloading = false
+		ammo = 6
+		ammo_changed.emit(ammo, false)
+
+
+func _start_reload() -> void:
+	_reloading = true
+	anim.play_overlay("reload")
+	Audio.play("reload_open", -6.0)
+	ammo_changed.emit(ammo, true)
+
+
+func _shoot() -> void:
+	ammo -= 1
+	_shot_cd = SHOT_COOLDOWN
+	var muzzle := rig.muzzle_global()
+	var aim := aim_point()
+	var dir := (aim - muzzle).normalized()
+	if muzzle.distance_to(aim) < 8.0 or dir == Vector2.ZERO:
+		dir = (muzzle - rig.point("hand_f")).normalized()
+	var q := PhysicsRayQueryParameters2D.create(muzzle, muzzle + dir * SHOT_RANGE, 1 | 4)
+	q.exclude = [get_rid()]
+	var hit := get_world_2d().direct_space_state.intersect_ray(q)
+	var end: Vector2 = hit.position if hit else muzzle + dir * SHOT_RANGE
+	Fx.tracer(muzzle, end)
+	Fx.sparks(muzzle, dir, 3, Color("#fff0a0"))
+	Fx.add_shake(0.18)
+	_recoil = 1.0
+	_flash_e = 1.4
+	_flash.global_position = muzzle
+	Audio.play("gunshot", -2.0, 1.0, 0.06)
+	if hit:
+		if hit.collider.has_method("take_hit"):
+			hit.collider.take_hit(1, dir, end)
+		else:
+			Fx.sparks(end, hit.normal, 5)
+			Fx.chips(end, hit.normal, 3)
+			Audio.play_at("ricochet", end, -6.0, 0.15)
+	ammo_changed.emit(ammo, false)
+
+
+# --- Damage ------------------------------------------------------------------------
+
+func hurt(dmg: int, push: Vector2) -> void:
+	if state == S.DEAD:
+		return
+	hp -= dmg
+	health_changed.emit(hp)
+	Fx.add_shake(0.4)
+	Audio.play("hurt", -2.0, 1.0, 0.1)
+	if hp <= 0:
+		_die()
+		return
+	velocity += push
+	if state == S.GROUND:
+		anim.play("hurt", 0.03, 0.0, true)
+
+
+func _die() -> void:
+	state = S.DEAD
+	_dead_t = 0.0
+	whip.release()
+	_anchor = null
+	anim.play("death", 0.05)
+	died.emit()
+
+
+func _dead(delta: float) -> void:
+	_dead_t += delta
+	velocity.x = move_toward(velocity.x, 0.0, 300.0 * delta)
+	velocity.y = minf(MAX_FALL, velocity.y + GRAVITY * delta)
+	move_and_slide()
+	if _dead_t > 2.2:
+		respawn()
+
+
+func respawn() -> void:
+	global_position = spawn
+	velocity = Vector2.ZERO
+	hp = MAX_HP
+	ammo = 6
+	_reloading = false
+	health_changed.emit(hp)
+	ammo_changed.emit(ammo, false)
+	_enter_air(false)
+	anim.play("fall", 0.0)
+
+
+# --- Pose --------------------------------------------------------------------------
+
+func _set_facing(f: int) -> void:
+	if f == 0:
+		return
+	facing = f
+	rig.facing = f
+
+
+func _face_mouse() -> void:
+	var dx := aim_point().x - global_position.x
+	if absf(dx) > 4.0:
+		_set_facing(int(signf(dx)))
+
+
+func _on_anim_event(e: String) -> void:
+	match e:
+		"step":
+			if state == S.GROUND:
+				var fast := absf(velocity.x) > FAST
+				Audio.play("step_dirt", -12.0 if not fast else -8.0, 1.0, 0.15)
+				if fast:
+					Fx.puff(global_position + Vector2(-facing * 3, 0), 2, Color("#c8a070"), Vector2(-facing * 20, 0), 10.0)
+		"shell":
+			Audio.play("reload_shell", -8.0, 1.0, 0.1)
+		"spin":
+			Audio.play("reload_spin", -6.0)
+
+
+func _pose(delta: float) -> void:
+	var pose := anim.advance(delta)
+	var lock: int = HeroAnims.clips[anim.clip_name]["lock"]
+	rig.apply(pose, lock)
+	# Swinging: the whole body hangs from the gripping hand and follows the rope.
+	var grip := Vector2(0, -GRIP_H)
+	var want := 0.0
+	if state == S.SWING and is_instance_valid(_anchor):
+		var to := _anchor.global_position - (global_position + grip)
+		want = clampf(to.angle() + PI / 2.0, -1.3, 1.3)
+	rig.rotation = lerp_angle(rig.rotation, want, minf(1.0, delta * 20.0))
+	rig.position = grip - grip.rotated(rig.rotation)
+
+	var aim := aim_point()
+	var aiming := state in [S.GROUND, S.AIR, S.SWING] and not _reloading and anim.clip_name != "idle_hat" \
+			and anim.clip_name != "hurt"
+	_aim_w = move_toward(_aim_w, 1.0 if aiming else 0.0, delta * 8.0)
+	rig.aim_arm("f", aim, _aim_w, -6.0 - _recoil * 50.0)
+	(rig.bones["ua_f"] as Node2D).rotation -= _recoil * 0.35 * _aim_w
+	if state in [S.GROUND, S.AIR, S.SWING]:
+		rig.look_at_point(aim, 0.8)
+	# Far arm: follows the whip tip while it's out, grips the rope when swinging.
+	if state == S.SWING and is_instance_valid(_anchor):
+		rig.aim_arm("b", _anchor.global_position, 1.0, 0.0)
+	elif whip.active() and not anim.overlay_name == "whip_pull":
+		_whip_arm = 1.0
+		rig.aim_arm("b", whip.tip, 1.0, -10.0)
+	else:
+		_whip_arm = move_toward(_whip_arm, 0.0, delta * 6.0)
+		if _whip_arm > 0.0:
+			rig.aim_arm("b", whip.tip, _whip_arm, -10.0)

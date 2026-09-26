@@ -2,3 +2,5 @@
 build/
 .DS_Store
 media/*.mp4
+.claude/
+__pycache__/

@@ -2,7 +2,7 @@ name: Deploy web build
 
 on:
   push:
-    branches: [main]
+    branches: [main, hero-rig]
   workflow_dispatch:
 
 permissions:
