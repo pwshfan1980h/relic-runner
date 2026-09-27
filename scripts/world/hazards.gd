@@ -12,7 +12,7 @@ class Spikes:
 
 	func _ready() -> void:
 		collision_layer = 0
-		collision_mask = 2
+		collision_mask = 2 | 4
 		var s := CollisionShape2D.new()
 		var r := RectangleShape2D.new()
 		r.size = Vector2(14, 6)
@@ -20,10 +20,12 @@ class Spikes:
 		s.position = Vector2(0, -3)
 		add_child(s)
 		body_entered.connect(func(b):
+			Audio.play_at("spike_hit", global_position, -2.0)
+			Gore.of(self).burst(b.global_position + Vector2(0, -4), 30, Vector2.UP)
 			if b is Hero:
-				Audio.play("spike_hit", -2.0)
-				Fx.chips(b.global_position, Vector2.UP, 6, Color("#e0c090"))
-				(b as Hero).kill())
+				(b as Hero).kill()
+			elif b is Enemy:
+				(b as Enemy).die("spikes", Vector2.DOWN, b.global_position))
 
 	func _draw() -> void:
 		var metal := Color("#9a9aa4") if biome == "canyon" else Color("#8a8a70")

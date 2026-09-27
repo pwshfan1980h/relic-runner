@@ -6,6 +6,12 @@ const MAIN := "res://scenes/main.tscn"
 const MENU := "res://scenes/menu.tscn"
 
 var current := 0
+var gore_on := true
+var music_vol := 0.7
+var sfx_vol := 1.0
+## Level -> music track (assets/music/<name>.mp3, see CREDITS.md).
+const MUSIC := {"proving_grounds": "canyon", "dry_gulch": "canyon", "rattler_mesa": "mesa", "bandit_mine": "mine",
+		"canopy_run": "jungle", "sunken_temple": "temple", "idol_chamber": "temple", "arena": "canyon"}
 
 
 func map_id() -> String:

@@ -18,6 +18,8 @@ var _hit_this_pounce := false
 func _setup() -> void:
 	size = Vector2(22, 11)
 	hp = 3
+	voice_die = "jaguar_roar"
+	death_angle = 0.0
 
 
 func _think(delta: float) -> void:
@@ -85,7 +87,20 @@ func _hit_color() -> Color:
 	return Color("#e0b060")
 
 
+func _on_die() -> void:
+	# Keels over; a pool spreads under it.
+	var gore := Gore.of(self)
+	gore.burst(death_at, 30, (death_dir + Vector2.UP).normalized())
+	for i in 6:
+		get_tree().create_timer(0.3 + i * 0.35).timeout.connect(func():
+			if is_instance_valid(self):
+				gore.stain_below(global_position + Vector2(randf_range(-8, 8), -2), 3.0 + i))
+
+
 func _draw() -> void:
+	if dead:
+		_draw_dead()
+		return
 	begin_draw()
 	var moving := absf(velocity.x) > 5.0 and is_on_floor()
 	var gait := t * (18.0 if absf(velocity.x) > 60.0 else 10.0) if moving else 0.0
@@ -122,3 +137,18 @@ func _draw() -> void:
 		var q := p + Vector2(-2.6, -0.5 + i * 0.4 + twitch * 0.3)
 		pline(p, q, FUR if i < 4 else SPOT, 1.5)
 		p = q
+
+
+## Lying on its side: flat body, stiff splayed legs, head down, tail limp.
+func _draw_dead() -> void:
+	var by := -3.0
+	for i in 4:
+		var x := -6.0 + i * 4.0
+		pline(Vector2(x, by), Vector2(x + (5.0 if i >= 2 else -5.0), by - 1.0), FUR_D if i % 2 == 0 else FUR, 2.0)
+	poly(PackedVector2Array([Vector2(-10, by - 3), Vector2(8, by - 3.5), Vector2(10, by), Vector2(-9, by + 1)]), FUR)
+	poly(PackedVector2Array([Vector2(-8, by - 1), Vector2(8, by - 1.5), Vector2(8, by), Vector2(-8, by + 1)]), BELLY)
+	for sx: float in [-6.0, -2.0, 2.0, 5.0]:
+		pcircle(Vector2(sx, by - 2.2), 0.8, SPOT)
+	poly(PackedVector2Array([Vector2(9, by - 2), Vector2(14, by - 1), Vector2(15, by + 1), Vector2(10, by + 1)]), FUR)
+	pline(Vector2(13, by - 0.5), Vector2(14, by - 0.5), SPOT)
+	pline(Vector2(-10, by - 1), Vector2(-20, by + 1), FUR, 1.5)

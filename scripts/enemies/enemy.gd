@@ -51,11 +51,12 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y = minf(500.0, velocity.y + GRAVITY * delta)
 	if dead:
+		# Corpses stay a while (the gore is the point), then fade.
 		_dead_t += delta
-		velocity.x = move_toward(velocity.x, 0.0, 200.0 * delta)
+		velocity.x = move_toward(velocity.x, 0.0, 300.0 * delta)
 		move_and_slide()
-		modulate.a = clampf(3.0 - _dead_t, 0.0, 1.0)
-		if _dead_t > 3.0:
+		modulate.a = clampf(26.0 - _dead_t, 0.0, 1.0)
+		if _dead_t > 26.0:
 			queue_free()
 		queue_redraw()
 		return
@@ -73,17 +74,34 @@ func _physics_process(delta: float) -> void:
 
 # --- Reactions --------------------------------------------------------------------
 
-func take_hit(dmg: int, dir: Vector2, at: Vector2) -> void:
+## kind: "bullet", "punch", "kick", "whip", "spikes". Humans override headshots etc.
+func take_hit(dmg: int, dir: Vector2, at: Vector2, kind := "bullet") -> void:
 	if dead:
 		return
 	hp -= dmg
 	_flash = 0.12
-	velocity.x += dir.x * 50.0
-	Fx.chips(at, -dir, 4, _hit_color())
+	velocity.x += dir.x * (50.0 if kind == "bullet" else 140.0)
+	bleed(at, dir, 10)
 	Audio.play_at("hit_flesh", at, -4.0, 0.15)
 	_on_hit()
 	if hp <= 0:
-		die()
+		die(kind, dir, at)
+	elif randf() < 0.5 and voice_hurt != "":
+		Audio.voice(voice_hurt, global_position, -6.0)
+
+
+## Blood (or ichor) from a wound, carrying onto the wall behind.
+func bleed(at: Vector2, dir: Vector2, amount := 10) -> void:
+	var col := blood_color()
+	var gore := Gore.of(self)
+	gore.burst(at, amount, (dir + Vector2(0, -0.4)).normalized(), col, 2)
+	gore.wall_splat(at, dir, col)
+	if not Gore.enabled():
+		Fx.chips(at, -dir, 4, _hit_color())
+
+
+func blood_color() -> Color:
+	return Gore.BLOOD
 
 
 func _hit_color() -> Color:
@@ -117,14 +135,36 @@ func _on_pulled() -> void:
 	pass
 
 
-func die() -> void:
+var death_kind := "bullet"
+var death_dir := Vector2.ZERO
+var death_at := Vector2.ZERO
+var voice_die := "human_die"
+var voice_hurt := ""
+var death_angle := PI  # how far the body tips over when it dies (drawn enemies)
+
+
+func die(kind := "bullet", dir := Vector2.ZERO, at := Vector2.INF) -> void:
+	if dead:
+		return
 	dead = true
 	stun = 0.0
+	death_kind = kind
+	death_dir = dir
+	death_at = global_position + Vector2(0, -size.y / 2.0) if at == Vector2.INF else at
 	collision_layer = 0
 	remove_from_group("whippable")
 	remove_from_group("enemy")
-	velocity.y = -80.0
+	add_to_group("corpse")
+	velocity += Vector2(dir.x * 60.0, -80.0)
+	if voice_die != "":
+		Audio.voice(voice_die, global_position, 0.0)
+	Fx.hitstop(0.05)
+	Fx.add_shake(0.15)
+	died.emit(self)
 	_on_die()
+
+
+signal died(enemy: Enemy)
 
 
 func _on_die() -> void:
@@ -216,6 +256,6 @@ func pcircle(c: Vector2, r: float, col: Color) -> void:
 func begin_draw() -> void:
 	if dead:
 		# Rotate about the body centre, then settle onto the ground upside down.
-		var a := minf(1.0, _dead_t * 4.0) * PI * facing
+		var a := minf(1.0, _dead_t * 4.0) * death_angle * facing
 		var c := Vector2(0, -size.y / 2.0)
 		draw_set_transform(c - c.rotated(a), a, Vector2.ONE)

@@ -26,6 +26,8 @@ var _light: PointLight2D
 func _setup() -> void:
 	size = Vector2(22, 40)
 	hp = 6
+	voice_die = "stone_groan"
+	voice_hurt = "stone_groan"
 	pullable = false
 	for c in get_children():
 		if c is CollisionShape2D:
@@ -51,6 +53,7 @@ func _think(delta: float) -> void:
 			if sees_hero(260.0, Vector2(0, -30)):
 				_go(S.WALK)
 				Audio.play_at("stone_grind", global_position, 0.0)
+				Audio.music("music_boss", 0.5)
 				Fx.add_shake(0.3)
 		S.WALK:
 			if hero_alive() and absf(d.x) > 2.0:
@@ -97,31 +100,39 @@ func _go(s: S) -> void:
 	_st = 0.0
 
 
-func take_hit(dmg: int, dir: Vector2, at: Vector2) -> void:
+func take_hit(dmg: int, dir: Vector2, at: Vector2, kind := "bullet") -> void:
 	# Shots land on the edge of the collision box, so test the glyph's height band.
 	var glyph_y := global_position.y - 24.0
 	if vulnerable() and absf(at.y - glyph_y) < 6.0:
 		Audio.play_at("glyph_hit", at, 0.0)
-		super(dmg, dir, at)
+		super(dmg, dir, at, kind)
 	else:
 		Fx.sparks(at, -dir, 5)
 		Fx.chips(at, -dir, 3, STONE_L)
 		Audio.play_at("ricochet", at, -4.0, 0.15)
 		if state == S.WAKE:
 			_go(S.WALK)
+			Audio.music("music_boss", 0.5)
 
 
 func _on_die() -> void:
 	Fx.add_shake(1.0)
 	Audio.play_at("stone_crumble", global_position, 2.0)
-	for i in 6:
-		Fx.chips(global_position + Vector2(randf_range(-10, 10), randf_range(-38, -4)), Vector2.UP, 6, STONE_L)
+	for i in 14:
+		Fx.chips(global_position + Vector2(randf_range(-11, 11), randf_range(-44, -2)), Vector2.UP.rotated(randf_range(-1, 1)), 8, STONE_L if i % 2 else STONE_D)
+	Fx.sparks(global_position + Vector2(0, -24), Vector2.UP, 16, GLYPH)
 	_light.energy = 0.0
 	defeated.emit()
 
 
 func _hit_color() -> Color:
 	return GLYPH
+
+
+## Stone doesn't bleed: the glyph cracks and spits light instead.
+func bleed(at: Vector2, dir: Vector2, _amount := 10) -> void:
+	Fx.sparks(at, -dir, 8, GLYPH)
+	Fx.chips(at, -dir, 5, STONE_L)
 
 
 func _draw() -> void:

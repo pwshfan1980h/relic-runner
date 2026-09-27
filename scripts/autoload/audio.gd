@@ -48,6 +48,27 @@ func stream(sound: String) -> AudioStream:
 	return _streams[sound]
 
 
+## Voice sets: sourced clips named <prefix>NN (see tools/fetch_sfx.sh, CREDITS.md).
+const VOICES := {
+	"human_die": ["voice_die_", 25], "human_pain": ["voice_pain_", 11],
+	"dog_bark": ["dog_bark_", 2], "dog_yelp": ["dog_yelp_", 5],
+	"llama_scream": ["llama_scream_", 2], "llama_spit": ["llama_spit_", 3],
+	"jaguar_roar": ["jaguar_roar_", 3], "bug_die": ["bug_die_", 4], "stone_groan": ["stone_groan_", 3],
+}
+var _last_voice := {}
+
+
+## A random clip from a voice set, never the same one twice in a row, pitch varied.
+func voice(set_name: String, where: Vector2, volume_db := 0.0) -> void:
+	var v: Array = VOICES[set_name]
+	var n: int = v[1]
+	var i := randi() % n
+	if n > 1 and i == _last_voice.get(set_name, -1):
+		i = (i + 1 + randi() % (n - 1)) % n
+	_last_voice[set_name] = i
+	play_at("%s%02d" % [v[0], i + 1], where, volume_db, 0.1)
+
+
 ## One-shot sound. pitch_jitter adds +-random variation.
 func play(sound: String, volume_db := 0.0, pitch := 1.0, pitch_jitter := 0.0) -> void:
 	var p := _pool[_next]

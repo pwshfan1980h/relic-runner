@@ -476,6 +476,21 @@ def checkpoint():
     return out
 
 
+def squelch():
+    out = silence(0.35)
+    wet = lowpass(noise(0.3, 91), lambda t: 2500 - 6000 * t)
+    mix(out, env(wet, decay(0.06, 0.004)), 0, 1.0)
+    mix(out, env(osc(lambda t: 220 - 300 * t, 0.2), decay(0.04)), 0.01, 0.5)
+    return out
+
+
+def splat():
+    out = silence(0.25)
+    mix(out, env(lowpass(noise(0.2, 92), 1800), decay(0.03, 0.002)), 0, 1.0)
+    mix(out, env(osc(90, 0.15), decay(0.03)), 0, 0.6)
+    return out
+
+
 SFX = [
     gunshot, ricochet, empty_click, reload_open, reload_shell, reload_spin,
     whip_throw, whip_crack, whip_latch,
@@ -483,7 +498,7 @@ SFX = [
     hit_wood, hit_straw, level_clear, amb_canyon_loop, amb_jungle_loop,
     hit_flesh, scorpion_hiss, rattle, snake_hiss, rifle, bandit_groan, jaguar_growl, jaguar_roar,
     stone_grind, slam, glyph_hit, stone_crumble, spike_hit, crumble_crack, gate_rumble, plate_click,
-    gate_tick, checkpoint,
+    gate_tick, checkpoint, squelch, splat,
 ]
 
 

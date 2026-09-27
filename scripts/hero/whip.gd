@@ -115,10 +115,11 @@ func _reset_rope(a: Vector2, b: Vector2) -> void:
 
 
 func target_point() -> Vector2:
-	if target is Node2D and is_instance_valid(target):
-		return (target as Node2D).global_position
 	if target is Vector2:
 		return target
+	# Check validity first: a whipped enemy can be freed (turned ragdoll) mid-pull.
+	if is_instance_valid(target) and target is Node2D:
+		return (target as Node2D).global_position
 	return tip
 
 

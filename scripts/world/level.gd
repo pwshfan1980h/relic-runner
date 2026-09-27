@@ -62,6 +62,7 @@ func build(id: String) -> void:
 	add_child(hud)
 	hud.bind(hero, map["title"])
 	Audio.ambience("amb_%s_loop" % map["biome"], -16.0)
+	Audio.music("music_" + GameState.MUSIC.get(map_id, "canyon"))
 	if OS.get_cmdline_user_args().has("--bot"):
 		var bot := Bot.new()
 		bot.level = self

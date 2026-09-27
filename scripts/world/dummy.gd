@@ -34,7 +34,7 @@ func _center() -> Vector2:
 	return Vector2(0, -25) + Vector2(0, 11).rotated(_ang)
 
 
-func take_hit(_dmg: int, dir: Vector2, at: Vector2) -> void:
+func take_hit(_dmg: int, dir: Vector2, at: Vector2, _kind := "bullet") -> void:
 	hits += 1
 	_vel += dir.x * 4.0
 	Fx.chips(at, -dir, 5, Color("#d8c070"))

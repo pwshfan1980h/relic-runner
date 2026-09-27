@@ -26,6 +26,7 @@ var _aim_at := Vector2.ZERO
 func _setup() -> void:
 	size = Vector2(8, 28)
 	hp = 2
+	voice_hurt = "human_pain"
 	# Re-create the collision shape at the humanoid size (base made it in _ready first).
 	for c in get_children():
 		if c is CollisionShape2D:
@@ -117,9 +118,31 @@ func _on_hit() -> void:
 			_go(S.AIM)
 
 
+## Headshots (top 7px of the body) kill outright.
+func take_hit(dmg: int, dir: Vector2, at: Vector2, kind := "bullet") -> void:
+	if not dead and kind == "bullet" and at.y < global_position.y - size.y + 7.0:
+		dmg = hp
+		kind = "headshot"
+	super(dmg, dir, at, kind)
+
+
 func _on_die() -> void:
-	anim.play("death", 0.05)
-	Audio.play_at("bandit_groan", global_position, -4.0, 0.1)
+	# Become a ragdoll: the killing blow's momentum carries the body.
+	var near := hero != null and hero.global_position.distance_to(global_position) < 48.0
+	var push := death_dir * (120.0 if death_kind in ["bullet", "headshot"] else 260.0)
+	if near:
+		push *= 1.6
+	var tear: Array = []
+	if Gore.enabled():
+		if death_kind == "headshot" and (near or randf() < 0.45):
+			tear.append("head")
+			Gore.of(self).burst(death_at, 40, death_dir)
+		if death_kind == "kick" and randf() < 0.5 or near and randf() < 0.4:
+			tear.append(["ua_f", "ua_b", "th_f", "th_b"].pick_random())
+		if death_kind == "spikes":
+			tear.append_array(["th_f", "th_b"].slice(0, 1 + randi() % 2))
+	Ragdoll.from_rig(rig, get_parent(), velocity, push, death_at, tear)
+	queue_free()
 
 
 func _physics_process(delta: float) -> void:

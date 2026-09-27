@@ -3,6 +3,7 @@ extends Node2D
 
 var _items: Array[Label] = []
 var _hover := -1
+var _options: Label
 
 
 func _ready() -> void:
@@ -26,8 +27,18 @@ func _ready() -> void:
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		_label(biome.to_upper(), Vector2(340, 80 + i * 22), 8, Color("#e8a848") if biome == "canyon" else Color("#8cbc6a"), 100)
 		_items.append(l)
-	_label("ESC IN A LEVEL RETURNS HERE   ·   BACKSPACE RESTARTS", Vector2(0, 250), 8, Color(1, 1, 1, 0.5), 480)
+	_options = _label("", Vector2(0, 232), 8, Color("#e8a848"), 480)
+	_label("ESC IN A LEVEL RETURNS HERE   ·   BACKSPACE RESTARTS", Vector2(0, 246), 8, Color(1, 1, 1, 0.5), 480)
+	_label("MUSIC: KEVIN MACLEOD (INCOMPETECH.COM) · CC BY 4.0", Vector2(0, 258), 8, Color(1, 1, 1, 0.35), 480)
+	_refresh_options()
 	Audio.ambience("amb_canyon_loop", -18.0)
+	Audio.music("music_menu")
+
+
+func _refresh_options() -> void:
+	_options.text = "G  GORE: %s     M  MUSIC: %d%%     N  SOUND: %d%%" % [
+			"ON" if GameState.gore_on else "OFF", roundi(GameState.music_vol * 100), roundi(GameState.sfx_vol * 100)]
+	Audio.set_volumes(GameState.music_vol, GameState.sfx_vol)
 
 
 func _label(text: String, pos: Vector2, size: int, col: Color, w: float) -> Label:
@@ -63,6 +74,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		var k: int = (event as InputEventKey).keycode
 		if k >= KEY_1 and k < KEY_1 + _items.size():
 			_pick(k - KEY_1)
+		elif k == KEY_G:
+			GameState.gore_on = not GameState.gore_on
+			_refresh_options()
+		elif k == KEY_M:
+			GameState.music_vol = fposmod(GameState.music_vol + 0.25, 1.25)
+			_refresh_options()
+		elif k == KEY_N:
+			GameState.sfx_vol = fposmod(GameState.sfx_vol + 0.25, 1.25)
+			_refresh_options()
+			Audio.play("gunshot", -6.0)
 
 
 func _pick(i: int) -> void:

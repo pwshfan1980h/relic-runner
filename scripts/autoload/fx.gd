@@ -19,6 +19,12 @@ func clear() -> void:
 	shake = 0.0
 
 
+## Freeze-frame on big hits: the world nearly stops for a moment.
+func hitstop(seconds := 0.045) -> void:
+	Engine.time_scale = 0.05
+	get_tree().create_timer(seconds, true, false, true).timeout.connect(func(): Engine.time_scale = 1.0)
+
+
 func add_shake(amount: float) -> void:
 	shake = minf(1.0, shake + amount)
 

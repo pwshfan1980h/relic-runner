@@ -18,6 +18,7 @@ var _flipped := 0.0
 func _setup() -> void:
 	size = Vector2(14, 7)
 	hp = 1
+	voice_die = "bug_die"
 
 
 func _think(delta: float) -> void:
@@ -63,6 +64,14 @@ func _hit_color() -> Color:
 	return Color("#a8c060")
 
 
+func blood_color() -> Color:
+	return Gore.ICHOR
+
+
+func _on_die() -> void:
+	Gore.of(self).burst(global_position + Vector2(0, -4), 30, Vector2.UP, Gore.ICHOR, 6)
+
+
 func _draw() -> void:
 	begin_draw()
 	var flip := _flipped > 0.0 and not dead
@@ -75,6 +84,8 @@ func _draw() -> void:
 		var ph := sin(walk + i * 1.6) * 1.5
 		if flip:
 			ph = sin(t * 30.0 + i) * 2.0
+		elif dead:
+			ph = sin(t * 18.0 + i) * 1.5 * maxf(0.0, 1.0 - _dead_t / 4.0)
 		pline(Vector2(x, -3), Vector2(x - 2 + ph, 0), LEG)
 	# Body segments.
 	poly(PackedVector2Array([Vector2(-7, -3), Vector2(-4, -6), Vector2(3, -6), Vector2(6, -4), Vector2(6, -2), Vector2(-6, -1)]), CARAPACE)

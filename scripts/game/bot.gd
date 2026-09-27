@@ -380,6 +380,14 @@ func _arena_checks(kind: String, dist: float, hurt_time: float) -> void:
 			want["reload!"] = true
 		_inputs(want)
 		return false, 30.0)
+	_add("%s: aftermath" % kind, func(_d):
+		_inputs({"aim": hero.global_position + Vector2(100, -20)})
+		if _t > 0.8 and OS.get_cmdline_user_args().has("--debug-ragdoll"):
+			for r in get_tree().get_nodes_in_group("corpse"):
+				if r is Ragdoll:
+					for k in (r as Ragdoll).bodies:
+						print("  ragdoll ", k, " ", ((r as Ragdoll).bodies[k] as Node2D).global_position.round(), " vis=", (r as Node2D).is_visible_in_tree(), " kids=", ((r as Ragdoll).bodies[k] as Node).get_child_count())
+		return _t > 0.8, 2.0)
 
 
 func _make(kind: String) -> Enemy:

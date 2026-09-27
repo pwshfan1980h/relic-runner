@@ -19,6 +19,8 @@ var _lunge := 0.0  # 0..1 head extension
 func _setup() -> void:
 	size = Vector2(14, 8)
 	hp = 1
+	voice_die = "bug_die"
+	death_angle = 0.0
 
 
 func _think(delta: float) -> void:
@@ -65,9 +67,26 @@ func _on_pulled() -> void:
 	_lunge = 0.0
 
 
+func _on_die() -> void:
+	Audio.play_at("snake_hiss", global_position, -2.0, 0.1)
+	Gore.of(self).burst(global_position + Vector2(0, -3), 26, Vector2.UP, Gore.BLOOD, 5)
+
+
 func _draw() -> void:
 	begin_draw()
-	if stun > 0.0 or dead:
+	if dead:
+		# Cut in two: the halves slide apart and writhe, slowing down.
+		var gap := minf(6.0, _dead_t * 30.0)
+		var life := maxf(0.0, 1.0 - _dead_t / 5.0)
+		for i in 9:
+			var x := -12.0 + i * 3.0 + (gap if i >= 5 else -gap * 0.3)
+			var y := -2.0 + sin(t * 14.0 + i) * 1.2 * life
+			pcircle(Vector2(x, y), 2.0, BODY if i % 2 else BODY_D)
+		pcircle(Vector2(14 + gap, -2), 2.4, BODY)
+		pcircle(Vector2(3.0 - gap * 0.3, -2), 1.6, Gore.BLOOD)
+		pcircle(Vector2(3.0 + gap, -2), 1.6, Gore.BLOOD)
+		return
+	if stun > 0.0:
 		# Stretched out, limp, wriggling.
 		for i in 9:
 			var x := -12.0 + i * 3.0

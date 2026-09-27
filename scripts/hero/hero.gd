@@ -67,6 +67,7 @@ var _reloading := false
 var _dead_t := 0.0
 var _invuln := 0.0
 var god := false  # test bot: take no damage
+var _killed_by_spikes := false
 var _flash: PointLight2D
 var _flash_e := 0.0
 var _whip_arm := 0.0  # weight of the far arm tracking the whip tip
@@ -139,7 +140,8 @@ func _physics_process(delta: float) -> void:
 	_flash_e = move_toward(_flash_e, 0.0, delta * 30.0)
 	_flash.energy = _flash_e
 	_invuln = maxf(0.0, _invuln - delta)
-	rig.visible = state == S.DEAD or _invuln <= 0.0 or fmod(_invuln, 0.12) < 0.07
+	if state != S.DEAD:
+		rig.visible = _invuln <= 0.0 or fmod(_invuln, 0.12) < 0.07
 	match state:
 		S.GROUND: _ground(delta)
 		S.AIR: _air(delta)
@@ -522,7 +524,7 @@ func _shoot() -> void:
 	Audio.play("gunshot", -2.0, 1.0, 0.06)
 	if hit:
 		if hit.collider.has_method("take_hit"):
-			hit.collider.take_hit(1, dir, end)
+			hit.collider.take_hit(1, dir, end, "bullet")
 		else:
 			Fx.sparks(end, hit.normal, 5)
 			Fx.chips(end, hit.normal, 3)
@@ -537,6 +539,9 @@ func hurt(dmg: int, push: Vector2) -> void:
 		return
 	_invuln = 1.0
 	hp -= dmg
+	Gore.of(self).burst(global_position + Vector2(0, -18), 12, (push + Vector2(0, -40)).normalized())
+	if hp > 0:
+		Audio.voice("human_pain", global_position, -4.0)
 	health_changed.emit(hp)
 	Fx.add_shake(0.4)
 	Audio.play("hurt", -2.0, 1.0, 0.1)
@@ -560,6 +565,7 @@ func kill() -> void:
 	if state == S.DEAD or god:
 		return
 	hp = 0
+	_killed_by_spikes = true
 	health_changed.emit(hp)
 	Audio.play("hurt", 0.0)
 	Fx.add_shake(0.5)
@@ -572,7 +578,29 @@ func _die() -> void:
 	whip.release()
 	_anchor = null
 	anim.play("death", 0.05)
+	_spawn_corpse()
+	Audio.voice("human_die", global_position, 0.0)
 	died.emit()
+
+
+## The hero's body goes ragdoll: a copy of the rig in the current pose, so the real
+## rig stays intact (hidden) for the respawn.
+func _spawn_corpse() -> void:
+	var body := HeroRig.new()
+	get_parent().add_child(body)
+	body.global_transform = rig.global_transform
+	body.facing = facing
+	body.rotation = rig.rotation
+	body.apply(anim.pose, 0)
+	body.bones["ua_f"].rotation = rig.bones["ua_f"].rotation
+	body.bones["fa_f"].rotation = rig.bones["fa_f"].rotation
+	var tear: Array = []
+	if _killed_by_spikes and Gore.enabled():
+		tear = ["th_f", "th_b"].slice(0, 1 + randi() % 2)
+	Ragdoll.from_rig(body, get_parent(), velocity + Vector2(0, -60), Vector2(-facing * 60.0, -40.0), global_position + Vector2(0, -16), tear)
+	body.queue_free()
+	rig.visible = false
+	Gore.of(self).burst(global_position + Vector2(0, -16), 30, Vector2.UP)
 
 
 func _dead(delta: float) -> void:
@@ -589,6 +617,8 @@ signal respawned
 
 func respawn() -> void:
 	global_position = spawn
+	rig.visible = true
+	_killed_by_spikes = false
 	_invuln = 1.0
 	_skidding = false
 	whip.release()
