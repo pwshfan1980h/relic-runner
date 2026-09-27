@@ -322,7 +322,7 @@ func _route_idol_chamber() -> void:
 ## Enemy checks: each type must hurt the hero, react to the whip, and die to the revolver.
 func _route_arena() -> void:
 	for spec in [["scorpion", 22.0, 3.0], ["snake", 30.0, 3.0], ["bandit", 130.0, 4.0],
-			["jaguar", 110.0, 5.0], ["guardian", 56.0, 8.0]]:
+			["jaguar", 110.0, 5.0], ["brute", 70.0, 6.0], ["machete", 70.0, 5.0], ["guardian", 56.0, 8.0]]:
 		_arena_checks(spec[0], spec[1], spec[2])
 	_melee_checks()
 
@@ -416,6 +416,8 @@ func _arena_checks(kind: String, dist: float, hurt_time: float) -> void:
 		_inputs({"aim": e.global_position + Vector2(0, -e.size.y / 2.0), "whip!": first})
 		if e is Jaguar:
 			return (e as Jaguar).state == Jaguar.S.FLEE
+		if e is Brawler and (e as Brawler).style == "brute":
+			return e.stun > 0.0 and absf(e.velocity.x) < 60.0  # staggered, not dragged
 		if e is Guardian:
 			return _t > 0.6 and e.stun <= 0.0 and not e.dead
 		return e.stun > 0.0, 1.5)
@@ -449,6 +451,10 @@ func _arena_checks(kind: String, dist: float, hurt_time: float) -> void:
 
 func _make(kind: String) -> Enemy:
 	match kind:
+		"brute", "machete":
+			var b := Brawler.new()
+			b.style = kind
+			return b
 		"scorpion":
 			return Scorpion.new()
 		"snake":

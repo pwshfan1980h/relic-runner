@@ -240,6 +240,10 @@ func _entities() -> void:
 					node = Bandit.new()
 				"J":
 					node = Jaguar.new()
+				"b", "m":
+					var br := Brawler.new()
+					br.style = "brute" if ch == "b" else "machete"
+					node = br
 				"G":
 					var gd := Guardian.new()
 					gd.defeated.connect(_on_boss_defeated)

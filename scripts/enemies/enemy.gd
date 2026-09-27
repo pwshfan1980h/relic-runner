@@ -181,6 +181,25 @@ func _on_die() -> void:
 	pass
 
 
+## Humans (rig-based enemies) die as ragdolls; the killing blow decides what tears.
+func ragdoll_death(rig: HeroRig) -> void:
+	var near := hero != null and hero.global_position.distance_to(global_position) < 48.0
+	var push := death_dir * (120.0 if death_kind in ["bullet", "headshot"] else 260.0)
+	if near:
+		push *= 1.6
+	var tear: Array = []
+	if Gore.enabled():
+		if death_kind == "headshot" and (near or randf() < 0.45):
+			tear.append("head")
+			Gore.of(self).burst(death_at, 40, death_dir)
+		if death_kind == "kick" and randf() < 0.5 or near and randf() < 0.4:
+			tear.append(["ua_f", "ua_b", "th_f", "th_b"].pick_random())
+		if death_kind == "spikes":
+			tear.append_array(["th_f", "th_b"].slice(0, 1 + randi() % 2))
+	Ragdoll.from_rig(rig, get_parent(), velocity, push, death_at, tear)
+	queue_free()
+
+
 # --- Helpers ----------------------------------------------------------------------
 
 func to_hero() -> Vector2:

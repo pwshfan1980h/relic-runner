@@ -6,6 +6,7 @@ extends RefCounted
 ##   ^  spikes        c  crumbling floor | gate (column)   _  pressure plate
 ##   K  checkpoint    L  lantern        ?  sign (texts from "signs", in reading order)
 ##   s  scorpion      r  rattlesnake    B  bandit          J  jaguar        G  Guardian
+##   b  brute         m  machete bandit
 ## Outside the grid, left/right/bottom count as solid rock and the top is open sky.
 ## "dark" rects (tile coords x, y, w, h) get a back wall and dim the ambient light.
 

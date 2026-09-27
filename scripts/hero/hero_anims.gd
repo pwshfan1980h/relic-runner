@@ -221,6 +221,28 @@ static func build() -> void:
 	])
 
 	# Upper-body overlays (only the arm channels are used).
+	# Enemy tells: fist cocked back / blade raised overhead, then the chop.
+	_add("windup", 0.4, false, 0, [
+		[0.0, {"ua_f": -30.0, "fa_f": -110.0, "ua_b": -20.0, "fa_b": -115.0}],
+		[0.25, {"ua_f": 55.0, "fa_f": -130.0, "ua_b": -35.0, "fa_b": -110.0}],
+		[0.4, {"ua_f": 58.0, "fa_f": -132.0, "ua_b": -35.0, "fa_b": -110.0}],
+	])
+	_add("raise_blade", 0.3, false, 0, [
+		[0.0, {"ua_f": 0.0, "fa_f": -30.0, "ua_b": 10.0, "fa_b": -30.0}],
+		[0.3, {"ua_f": -170.0, "fa_f": -40.0, "ua_b": -30.0, "fa_b": -80.0}],
+	])
+	_add("chop", 0.3, false, 0, [
+		[0.0, {"ua_f": -170.0, "fa_f": -40.0, "ua_b": -30.0, "fa_b": -80.0}],
+		[0.08, {"ua_f": -60.0, "fa_f": -5.0, "ua_b": 20.0, "fa_b": -60.0}],
+		[0.3, {"ua_f": -20.0, "fa_f": -10.0, "ua_b": 10.0, "fa_b": -40.0}],
+	])
+	_add("barge", 0.5, true, 1, _gait([
+		{"torso": 35.0, "head": -10.0, "th_f": -40.0, "sh_f": 20.0, "ft_f": -5.0, "th_b": 30.0, "sh_b": 60.0, "ft_b": 40.0,
+				"ua_f": -10.0, "fa_f": -100.0, "ua_b": 20.0, "fa_b": -100.0},
+		{"torso": 35.0, "head": -10.0, "th_f": 10.0, "sh_f": 30.0, "ft_f": 10.0, "th_b": -30.0, "sh_b": 100.0, "ft_b": 20.0,
+				"ua_f": -10.0, "fa_f": -100.0, "ua_b": 20.0, "fa_b": -100.0, "hy": -1.5},
+	], 0.5))
+
 	# Punches: guard up, jab with the near fist, cross with the far fist.
 	_add("punch_a", 0.22, false, 0, [
 		[0.0, {"ua_f": -30.0, "fa_f": -120.0, "ua_b": -20.0, "fa_b": -115.0}],

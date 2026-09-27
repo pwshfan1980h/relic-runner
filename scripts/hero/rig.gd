@@ -40,10 +40,11 @@ var bones := {}  # name -> Node2D
 var hips: Node2D
 var whip_coil: Node2D  # hidden while the whip is out
 var gun: Node2D
+var size_scale := 1.0  # big men (the Brute) are drawn larger
 var facing := 1:
 	set(v):
 		facing = 1 if v >= 0 else -1
-		scale.x = facing
+		scale = Vector2(facing * size_scale, size_scale)
 
 # Points used for ground locking: [bone, local point]. Feet first (used for "feet" mode).
 var _feet_pts: Array = []
@@ -197,6 +198,24 @@ func recolor(swap: Dictionary) -> void:
 func make_rifle() -> void:
 	gun.scale = Vector2(1.0, 2.4)
 	gun.position = Vector2(0, -1.5)
+
+
+## Swaps the revolver for a machete: a long blade carried on from the fist.
+func make_machete() -> void:
+	for c in gun.get_children():
+		c.queue_free()
+	_poly(gun, PackedVector2Array([Vector2(-0.6, -0.5), Vector2(0.6, -0.5), Vector2(0.6, 2.0), Vector2(-0.6, 2.0)]), GRIP, 10)
+	_poly(gun, PackedVector2Array([Vector2(-0.8, 2.0), Vector2(0.9, 2.0), Vector2(1.4, 10.0), Vector2(0.2, 12.5), Vector2(-0.6, 10.0)]), Color("#b8bcc4"), 10)
+	_poly(gun, PackedVector2Array([Vector2(0.5, 2.5), Vector2(0.9, 2.5), Vector2(1.3, 10.0), Vector2(0.8, 10.0)]), Color("#e8ecf0"), 10)
+
+
+## Bald with a knotted bandana and a heavy mustache (the Brute).
+func make_brute_head() -> void:
+	bones["hat"].visible = false
+	var head: Node2D = bones["head"]
+	_poly(head, PackedVector2Array([Vector2(-2.3, -4.6), Vector2(2.5, -4.6), Vector2(2.6, -3.4), Vector2(-2.4, -3.4)]), Color("#a82020"), 3)
+	_poly(head, PackedVector2Array([Vector2(-2.3, -4.2), Vector2(-4.2, -3.0), Vector2(-3.8, -2.2), Vector2(-2.2, -3.4)]), Color("#881818"), 3)
+	_poly(head, PackedVector2Array([Vector2(1.0, -1.2), Vector2(3.2, -1.3), Vector2(3.0, -0.2), Vector2(1.6, -0.4), Vector2(1.2, 0.4)]), HAIR, 3)
 
 
 ## Local muzzle point on the gun node.
