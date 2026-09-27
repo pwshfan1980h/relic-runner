@@ -29,10 +29,6 @@ func _setup() -> void:
 	voice_die = "stone_groan"
 	voice_hurt = "stone_groan"
 	pullable = false
-	for c in get_children():
-		if c is CollisionShape2D:
-			(c as CollisionShape2D).shape.size = size
-			(c as CollisionShape2D).position = Vector2(0, -size.y / 2.0)
 	_light = PointLight2D.new()
 	_light.texture = Lights.radial(128)
 	_light.color = GLYPH

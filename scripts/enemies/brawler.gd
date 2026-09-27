@@ -40,10 +40,6 @@ func _setup() -> void:
 	_speed = 58.0 if brute else 72.0
 	_reach = 20.0 if brute else 22.0
 	voice_hurt = "human_pain"
-	for c in get_children():
-		if c is CollisionShape2D:
-			(c as CollisionShape2D).shape.size = size
-			(c as CollisionShape2D).position = Vector2(0, -size.y / 2.0)
 	rig = HeroRig.new()
 	if brute:
 		rig.size_scale = 1.3

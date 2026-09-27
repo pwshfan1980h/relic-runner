@@ -13,9 +13,12 @@ var _banner: Label
 var _sign: Label
 var _t := 0.0
 var _spin := 0.0
+var _smear := 0.0  # llama spit on the lens, fades
+var _smear_seed := 0
 
 
 func _ready() -> void:
+	add_to_group("hud")
 	layer = 10
 	_draw_node = Control.new()
 	_draw_node.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -59,6 +62,11 @@ func banner(text: String) -> void:
 	_banner.modulate.a = 1.0
 
 
+func smear() -> void:
+	_smear = 1.0
+	_smear_seed = randi()
+
+
 func hint(text: String) -> void:
 	_sign.text = text.to_upper()
 
@@ -68,6 +76,7 @@ func _process(delta: float) -> void:
 	_title.modulate.a = clampf(3.5 - _t, 0.0, 1.0)
 	_hint.modulate.a = clampf(14.0 - _t, 0.0, 0.85)
 	_spin = move_toward(_spin, 0.0, delta * 1.2)
+	_smear = move_toward(_smear, 0.0, delta * 0.6)
 	_draw_node.queue_redraw()
 
 
@@ -75,6 +84,15 @@ func _draw_hud() -> void:
 	if _hero == null:
 		return
 	var n := _draw_node
+	if _smear > 0.0:
+		var rng := RandomNumberGenerator.new()
+		rng.seed = _smear_seed
+		for i in 5:
+			var c := Vector2(rng.randf_range(120, 360), rng.randf_range(60, 200))
+			var r := rng.randf_range(8, 22)
+			n.draw_circle(c, r, Color(0.55, 0.7, 0.2, 0.35 * _smear))
+			n.draw_circle(c + Vector2(r * 0.3, r * 0.6), r * 0.45, Color(0.7, 0.82, 0.3, 0.35 * _smear))
+			n.draw_rect(Rect2(c + Vector2(-1, r * 0.8), Vector2(2, r * 0.9 * (1.0 - _smear * 0.5))), Color(0.55, 0.7, 0.2, 0.3 * _smear))
 	# Health: one fedora per hit point.
 	for i in Hero.MAX_HP:
 		var x := 10 + i * 14

@@ -27,11 +27,6 @@ func _setup() -> void:
 	size = Vector2(8, 28)
 	hp = 2
 	voice_hurt = "human_pain"
-	# Re-create the collision shape at the humanoid size (base made it in _ready first).
-	for c in get_children():
-		if c is CollisionShape2D:
-			(c as CollisionShape2D).shape.size = size
-			(c as CollisionShape2D).position = Vector2(0, -size.y / 2.0)
 	rig = HeroRig.new()
 	rig.recolor(SWAP)
 	rig.make_rifle()

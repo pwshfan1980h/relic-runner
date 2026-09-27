@@ -25,16 +25,17 @@ func _ready() -> void:
 	floor_snap_length = 4.0
 	add_to_group("enemy")
 	add_to_group("whippable")
+	z_index = 4
+	_home = global_position
+	hero = get_tree().get_first_node_in_group("hero") as Hero
+	# Subclasses set their size here, so it must run before the collision box is made.
+	_setup()
 	var s := CollisionShape2D.new()
 	var r := RectangleShape2D.new()
 	r.size = size
 	s.shape = r
 	s.position = Vector2(0, -size.y / 2.0)
 	add_child(s)
-	z_index = 4
-	_home = global_position
-	hero = get_tree().get_first_node_in_group("hero") as Hero
-	_setup()
 
 
 func _setup() -> void:

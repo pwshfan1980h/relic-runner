@@ -322,7 +322,8 @@ func _route_idol_chamber() -> void:
 ## Enemy checks: each type must hurt the hero, react to the whip, and die to the revolver.
 func _route_arena() -> void:
 	for spec in [["scorpion", 22.0, 3.0], ["snake", 30.0, 3.0], ["bandit", 130.0, 4.0],
-			["jaguar", 110.0, 5.0], ["brute", 70.0, 6.0], ["machete", 70.0, 5.0], ["guardian", 56.0, 8.0]]:
+			["jaguar", 110.0, 5.0], ["brute", 70.0, 6.0], ["machete", 70.0, 5.0], ["dog", 90.0, 4.0], ["llama", 110.0, 5.0],
+			["guardian", 56.0, 8.0]]:
 		_arena_checks(spec[0], spec[1], spec[2])
 	_melee_checks()
 
@@ -359,6 +360,18 @@ func _melee_checks() -> void:
 		var shoot := hero.ammo > 0 and hero._shot_cd <= 0.0
 		_inputs({"aim": e.global_position + Vector2(0, -14), "shoot!": shoot, "reload!": hero.ammo == 0})
 		return false, 5.0)
+	_spawn_step("llama up close", "llama", 20.0)
+	_add("llama rear-kicks up close", func(_d):
+		_inputs({"aim": hero.global_position + Vector2(100, -20)})
+		return hero.hp < Hero.MAX_HP, 3.0)
+	_add("finish the llama", func(_d):
+		var e := _arena_enemy()
+		if e == null or e.dead:
+			return true
+		hero._invuln = 5.0
+		var shoot := hero.ammo > 0 and hero._shot_cd <= 0.0
+		_inputs({"aim": e.global_position + Vector2(0, -12), "shoot!": shoot, "reload!": hero.ammo == 0})
+		return false, 8.0)
 	_spawn_step("crouch: bandit", "bandit", 130.0)
 	_add("crouching dodges bandit fire", func(_d):
 		var e := _arena_enemy() as Bandit
@@ -416,6 +429,13 @@ func _arena_checks(kind: String, dist: float, hurt_time: float) -> void:
 		_inputs({"aim": e.global_position + Vector2(0, -e.size.y / 2.0), "whip!": first})
 		if e is Jaguar:
 			return (e as Jaguar).state == Jaguar.S.FLEE
+		if e is AttackDog:
+			return (e as AttackDog).state == AttackDog.S.FLEE
+		if e is AttackLlama:
+			# The charge can end the same frame it rams the hero: remember seeing it.
+			if (e as AttackLlama).state == AttackLlama.S.CHARGE:
+				_mem["charged"] = true
+			return _mem.has("charged")
 		if e is Brawler and (e as Brawler).style == "brute":
 			return e.stun > 0.0 and absf(e.velocity.x) < 60.0  # staggered, not dragged
 		if e is Guardian:
@@ -451,6 +471,10 @@ func _arena_checks(kind: String, dist: float, hurt_time: float) -> void:
 
 func _make(kind: String) -> Enemy:
 	match kind:
+		"dog":
+			return AttackDog.new()
+		"llama":
+			return AttackLlama.new()
 		"brute", "machete":
 			var b := Brawler.new()
 			b.style = kind

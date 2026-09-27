@@ -240,6 +240,10 @@ func _entities() -> void:
 					node = Bandit.new()
 				"J":
 					node = Jaguar.new()
+				"d":
+					node = AttackDog.new()
+				"l":
+					node = AttackLlama.new()
 				"b", "m":
 					var br := Brawler.new()
 					br.style = "brute" if ch == "b" else "machete"
