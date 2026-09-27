@@ -20,6 +20,7 @@ func _setup() -> void:
 	size = Vector2(14, 8)
 	hp = 1
 	voice_die = "bug_die"
+	loot = {"coins": [0, 1], "items": 0.2, "bandage": 0.05}
 	death_angle = 0.0
 
 

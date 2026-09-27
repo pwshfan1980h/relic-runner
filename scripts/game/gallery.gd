@@ -22,6 +22,11 @@ func _ready() -> void:
 		out_dir = args[i + 1]
 	DirAccess.make_dir_recursive_absolute(out_dir)
 	HeroAnims.build()
+	if args.has("--items"):
+		await _items_sheet()
+		print("gallery written to ", ProjectSettings.globalize_path(out_dir))
+		get_tree().quit()
+		return
 	await _sheet()
 	if args.has("--frames"):
 		for name in HeroAnims.clips:
@@ -88,3 +93,32 @@ func _strip(name: String) -> void:
 		var t := minf(k / FPS, c["len"])
 		_cell_rig(vp, Vector2(CELL.x * k + CELL.x / 2.0, CELL.y - 8), HeroAnims.sample(c, t), c["lock"], name)
 	await _save(vp, out_dir.path_join(name + ".png"))
+
+
+## A grid of generated loot (icons at 1x, upscaled), names listed in items.txt.
+func _items_sheet() -> void:
+	var cols := 8
+	var rows := 6
+	var cell := 16
+	var vp := _viewport(Vector2i(cols * cell, rows * cell))
+	var bg := ColorRect.new()
+	bg.color = Color("#2a1c14")
+	bg.size = Vector2(cols * cell, rows * cell)
+	vp.add_child(bg)
+	var names: PackedStringArray = []
+	for i in cols * rows:
+		var it := Item.generate(i * 104729 + 17, 0.4)
+		var s := Sprite2D.new()
+		s.texture = ItemArt.icon(it)
+		s.position = Vector2((i % cols) * cell + cell / 2.0, (i / cols) * cell + cell / 2.0)
+		vp.add_child(s)
+		var frame := ReferenceRect.new()
+		frame.border_color = it.color()
+		frame.editor_only = false
+		frame.position = s.position - Vector2(7.5, 7.5)
+		frame.size = Vector2(15, 15)
+		vp.add_child(frame)
+		names.append("%d  [%s] %s  (%dg)" % [i, Item.RARITY_NAMES[it.rarity], it.name, it.value])
+	await _save(vp, out_dir.path_join("items.png"))
+	var f := FileAccess.open(out_dir.path_join("items.txt"), FileAccess.WRITE)
+	f.store_string("\n".join(names))

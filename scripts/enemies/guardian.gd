@@ -28,6 +28,7 @@ func _setup() -> void:
 	hp = 6
 	voice_die = "stone_groan"
 	voice_hurt = "stone_groan"
+	loot = {"coins": [10, 16], "items": 1.0, "item_rolls": 3, "luck": 0.6, "min_rarity": 1}
 	pullable = false
 	_light = PointLight2D.new()
 	_light.texture = Lights.radial(128)
@@ -118,6 +119,12 @@ func _on_die() -> void:
 		Fx.chips(global_position + Vector2(randf_range(-11, 11), randf_range(-44, -2)), Vector2.UP.rotated(randf_range(-1, 1)), 8, STONE_L if i % 2 else STONE_D)
 	Fx.sparks(global_position + Vector2(0, -24), Vector2.UP, 16, GLYPH)
 	_light.energy = 0.0
+	# It always leaves a legendary relic.
+	var relic := Pickup.new()
+	relic.item = Item.generate(randi(), 1.0, 3, "idol")
+	relic.position = global_position + Vector2(0, -30)
+	relic.velocity = Vector2(0, -160)
+	get_parent().add_child.call_deferred(relic)
 	defeated.emit()
 
 

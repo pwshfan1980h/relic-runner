@@ -27,6 +27,7 @@ func _setup() -> void:
 	size = Vector2(8, 28)
 	hp = 2
 	voice_hurt = "human_pain"
+	loot = {"coins": [2, 5], "items": 0.45, "bandage": 0.2}
 	rig = HeroRig.new()
 	rig.recolor(SWAP)
 	rig.make_rifle()

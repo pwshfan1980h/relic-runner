@@ -27,7 +27,7 @@ func _ready() -> void:
 	add_child(_draw_node)
 	_title = _label(Vector2(0, 30), 16, HORIZONTAL_ALIGNMENT_CENTER)
 	_hint = _label(Vector2(0, 252), 8, HORIZONTAL_ALIGNMENT_CENTER)
-	_hint.text = "WASD MOVE   SHIFT RUN   SPACE JUMP   LMB REVOLVER   RMB WHIP   R RELOAD"
+	_hint.text = "WASD MOVE  SHIFT RUN  SPACE JUMP  C CROUCH  LMB SHOOT  RMB WHIP  E PUNCH  F KICK  R RELOAD  TAB LOOT"
 	_banner = _label(Vector2(0, 110), 16, HORIZONTAL_ALIGNMENT_CENTER)
 	_sign = _label(Vector2(40, 214), 8, HORIZONTAL_ALIGNMENT_CENTER)
 	_sign.size = Vector2(400, 30)
@@ -110,3 +110,10 @@ func _draw_hud() -> void:
 		var loaded := i < _hero.ammo
 		n.draw_circle(p, 2.0, Color("#d8b050") if loaded else Color("#18181c"))
 	n.draw_circle(c, 1.5, Color("#2c2c33"))
+	# Gold carried (top right).
+	var font := ThemeDB.fallback_font
+	var gtext := "%d G" % GameState.gold
+	var gw := font.get_string_size(gtext, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+	n.draw_circle(Vector2(468 - gw - 6, 11), 3.0, Color("#d0a020"))
+	n.draw_string(font, Vector2(470 - gw, 15) + Vector2(1, 1), gtext, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, SHADOW)
+	n.draw_string(font, Vector2(470 - gw, 15), gtext, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("#ffd040"))

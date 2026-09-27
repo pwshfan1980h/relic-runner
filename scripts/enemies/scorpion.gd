@@ -19,6 +19,7 @@ func _setup() -> void:
 	size = Vector2(14, 7)
 	hp = 1
 	voice_die = "bug_die"
+	loot = {"coins": [0, 1], "items": 0.15, "bandage": 0.05}
 
 
 func _think(delta: float) -> void:

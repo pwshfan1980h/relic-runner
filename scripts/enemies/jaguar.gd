@@ -20,6 +20,7 @@ func _setup() -> void:
 	hp = 3
 	voice_die = "jaguar_roar"
 	death_angle = 0.0
+	loot = {"coins": [0, 2], "items": 0.4, "luck": 0.2, "bandage": 0.1}
 
 
 func _think(delta: float) -> void:

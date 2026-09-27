@@ -372,6 +372,28 @@ func _melee_checks() -> void:
 		var shoot := hero.ammo > 0 and hero._shot_cd <= 0.0
 		_inputs({"aim": e.global_position + Vector2(0, -12), "shoot!": shoot, "reload!": hero.ammo == 0})
 		return false, 8.0)
+	_add("item generator: 200 names + icons", func(_d):
+		for i in 200:
+			var it := Item.generate(i * 7919 + 1)
+			if it.name == "" or ItemArt.icon(it) == null:
+				return false
+		return true, 2.0)
+	_spawn_step("loot: brute", "brute", 60.0)
+	_add("killed brute drops loot", func(_d):
+		var e := _arena_enemy()
+		if e and not e.dead:
+			_mem["g0"] = GameState.loot_value()
+			e.die("bullet", Vector2.RIGHT, e.global_position + Vector2(0, -20))
+		return get_tree().get_nodes_in_group("loot").size() > 0, 1.0)
+	_add("walk over loot to collect it", func(_d):
+		var near: Node2D = null
+		for p in get_tree().get_nodes_in_group("loot"):
+			if near == null or (p as Node2D).global_position.distance_to(hero.global_position) < near.global_position.distance_to(hero.global_position):
+				near = p
+		if near:
+			var dir := signf(near.global_position.x - x())
+			_inputs({"right": dir > 0, "left": dir < 0, "aim": hero.global_position + Vector2(100, -20)})
+		return GameState.loot_value() > _mem.get("g0", 0) and get_tree().get_nodes_in_group("loot").is_empty(), 8.0)
 	_spawn_step("crouch: bandit", "bandit", 130.0)
 	_add("crouching dodges bandit fire", func(_d):
 		var e := _arena_enemy() as Bandit

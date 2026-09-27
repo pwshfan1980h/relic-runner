@@ -26,6 +26,7 @@ func _setup() -> void:
 	voice_hurt = "llama_scream"
 	death_angle = 0.0
 	knock_scale = 0.6
+	loot = {"coins": [1, 4], "items": 0.6, "luck": 0.3, "bandage": 0.15}
 
 
 func _think(delta: float) -> void:

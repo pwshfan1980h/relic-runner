@@ -514,6 +514,34 @@ def kick_hit():
     return drive(out, 2.5)
 
 
+def coin_drop():
+    out = silence(0.2)
+    mix(out, env(osc(3200, 0.15), decay(0.03)), 0, 0.5)
+    mix(out, env(osc(4700, 0.15), decay(0.02)), 0.04, 0.35)
+    return out
+
+
+def item_drop():
+    out = silence(0.2)
+    mix(out, env(lowpass(noise(0.05, 111), 2000), decay(0.01)), 0, 0.6)
+    mix(out, env(osc(700, 0.1), decay(0.02)), 0, 0.4)
+    return out
+
+
+def coin_pickup():
+    out = silence(0.3)
+    mix(out, env(osc(midi(88), 0.2, "square", 0.3), decay(0.05)), 0, 0.3)
+    mix(out, env(osc(midi(95), 0.25, "square", 0.3), decay(0.08)), 0.06, 0.3)
+    return lowpass(out, 5000)
+
+
+def item_pickup():
+    out = silence(0.6)
+    for i, n in enumerate((72, 76, 79, 84)):
+        mix(out, env(osc(midi(n), 0.3, "triangle"), decay(0.12)), i * 0.06, 0.4)
+    return out
+
+
 SFX = [
     gunshot, ricochet, empty_click, reload_open, reload_shell, reload_spin,
     whip_throw, whip_crack, whip_latch,
@@ -522,6 +550,7 @@ SFX = [
     hit_flesh, scorpion_hiss, rattle, snake_hiss, rifle, bandit_groan, jaguar_growl, jaguar_roar,
     stone_grind, slam, glyph_hit, stone_crumble, spike_hit, crumble_crack, gate_rumble, plate_click,
     gate_tick, checkpoint, squelch, splat, whoosh_punch, whoosh_kick, punch_hit, kick_hit,
+    coin_drop, item_drop, coin_pickup, item_pickup,
 ]
 
 

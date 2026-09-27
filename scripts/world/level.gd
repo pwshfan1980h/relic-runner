@@ -60,6 +60,7 @@ func build(id: String) -> void:
 	add_child(cross)
 	hud = Hud.new()
 	add_child(hud)
+	add_child(InventoryScreen.new())
 	hud.bind(hero, map["title"])
 	Audio.ambience("amb_%s_loop" % map["biome"], -16.0)
 	Audio.music("music_" + GameState.MUSIC.get(map_id, "canyon"))

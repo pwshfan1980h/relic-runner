@@ -40,6 +40,7 @@ func _setup() -> void:
 	_speed = 58.0 if brute else 72.0
 	_reach = 20.0 if brute else 22.0
 	voice_hurt = "human_pain"
+	loot = {"coins": [4, 9], "items": 0.8, "luck": 0.35, "bandage": 0.3} if brute else {"coins": [2, 5], "items": 0.4, "bandage": 0.2}
 	rig = HeroRig.new()
 	if brute:
 		rig.size_scale = 1.3

@@ -22,6 +22,7 @@ func _setup() -> void:
 	voice_die = "dog_yelp"
 	voice_hurt = "dog_yelp"
 	death_angle = 0.0
+	loot = {"coins": [0, 1], "items": 0.15, "bandage": 0.1}
 	# Packs shouldn't move in lockstep.
 	t = randf() * 3.0
 

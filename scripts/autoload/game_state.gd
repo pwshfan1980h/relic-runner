@@ -7,6 +7,10 @@ const MENU := "res://scenes/menu.tscn"
 
 var current := 0
 var gore_on := true
+## Loot carried this session: [{seed, kind, rarity, name, value, count}], plus gold.
+var inventory: Array = []
+var gold := 0
+signal loot_changed
 var music_vol := 0.7
 var sfx_vol := 1.0
 ## Level -> music track (assets/music/<name>.mp3, see CREDITS.md).
@@ -20,6 +24,30 @@ func map_id() -> String:
 	if i >= 0 and i + 1 < args.size():
 		return args[i + 1]
 	return LEVELS[current]
+
+
+func add_gold(n: int) -> void:
+	gold += n
+	loot_changed.emit()
+
+
+func add_item(it: Item) -> void:
+	for e in inventory:
+		if e["name"] == it.name:
+			e["count"] += 1
+			loot_changed.emit()
+			return
+	var d := it.to_dict()
+	d["count"] = 1
+	inventory.append(d)
+	loot_changed.emit()
+
+
+func loot_value() -> int:
+	var v := gold
+	for e in inventory:
+		v += int(e["value"]) * int(e["count"])
+	return v
 
 
 func goto(i: int) -> void:

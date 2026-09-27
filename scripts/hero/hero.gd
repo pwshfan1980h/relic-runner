@@ -683,6 +683,11 @@ func hurt(dmg: int, push: Vector2) -> void:
 			anim.play("hurt", 0.03, 0.0, true)
 
 
+func heal(n: int) -> void:
+	hp = mini(MAX_HP, hp + n)
+	health_changed.emit(hp)
+
+
 ## Spikes, bottomless drops: straight to death regardless of hit points.
 func kill() -> void:
 	if state == S.DEAD or god:

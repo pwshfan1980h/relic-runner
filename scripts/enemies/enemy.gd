@@ -152,6 +152,8 @@ var voice_die := "human_die"
 var voice_hurt := ""
 var death_angle := PI  # how far the body tips over when it dies (drawn enemies)
 var knock_scale := 1.0  # heavy enemies shrug off knockback
+## What falls out when we die (see Pickup.drop).
+var loot := {"coins": [0, 2], "items": 0.25, "bandage": 0.08}
 
 
 func die(kind := "bullet", dir := Vector2.ZERO, at := Vector2.INF) -> void:
@@ -172,6 +174,7 @@ func die(kind := "bullet", dir := Vector2.ZERO, at := Vector2.INF) -> void:
 	Fx.hitstop(0.05)
 	Fx.add_shake(0.15)
 	died.emit(self)
+	Pickup.drop(get_parent(), global_position + Vector2(0, -size.y * 0.6), loot)
 	_on_die()
 
 
