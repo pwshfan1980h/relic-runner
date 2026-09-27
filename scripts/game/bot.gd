@@ -38,7 +38,7 @@ func _add(name: String, tick: Callable, timeout: float) -> void:
 
 
 func _inputs(d: Dictionary) -> void:
-	for k in ["left", "right", "up", "down", "run", "jump", "whip", "shoot", "reload"]:
+	for k in ["left", "right", "up", "down", "run", "jump", "whip", "shoot", "reload", "crouch", "punch", "kick"]:
 		hero.bot_input[k] = d.get(k, false)
 	hero.bot_input["aim"] = d.get("aim", hero.global_position + Vector2(200 * hero.facing, -20))
 	for k in d:
@@ -324,6 +324,63 @@ func _route_arena() -> void:
 	for spec in [["scorpion", 22.0, 3.0], ["snake", 30.0, 3.0], ["bandit", 130.0, 4.0],
 			["jaguar", 110.0, 5.0], ["guardian", 56.0, 8.0]]:
 		_arena_checks(spec[0], spec[1], spec[2])
+	_melee_checks()
+
+
+## Crouch and melee: punches, kicks and ducking under bandit fire.
+func _melee_checks() -> void:
+	_spawn_step("punch: scorpion", "scorpion", 14.0)
+	_add("crouch-punch kills a scorpion", func(_d):
+		hero._invuln = 5.0
+		var e := _arena_enemy()
+		var n: int = _mem.get("n", 0)
+		var want := {"aim": hero.global_position + Vector2(100, -10), "crouch": true}
+		if hero._melee == "" and n < 4 and hero.crouching:
+			want["punch!"] = true
+			_mem["n"] = n + 1
+		_inputs(want)
+		return not is_instance_valid(e) or e.dead, 2.0)
+	_spawn_step("kick: bandit", "bandit", 14.0)
+	_add("front kick launches a bandit", func(_d):
+		hero._invuln = 5.0
+		var e := _arena_enemy()
+		# Step into range, then kick (keep pressing until the kick starts).
+		if hero._melee == "front_kick":
+			_mem["k"] = true
+		var close := absf(e.global_position.x - x()) < 16.0
+		_inputs({"aim": hero.global_position + Vector2(100, -20), "right": not close and not _mem.has("k"),
+				"kick!": close and not _mem.has("k")})
+		return not is_instance_valid(e) or e.dead or e.velocity.x > 150.0, 3.0)
+	_add("finish the bandit", func(_d):
+		var e := _arena_enemy()
+		if not is_instance_valid(e) or e.dead:
+			return true
+		hero._invuln = 5.0
+		var shoot := hero.ammo > 0 and hero._shot_cd <= 0.0
+		_inputs({"aim": e.global_position + Vector2(0, -14), "shoot!": shoot, "reload!": hero.ammo == 0})
+		return false, 5.0)
+	_spawn_step("crouch: bandit", "bandit", 130.0)
+	_add("crouching dodges bandit fire", func(_d):
+		var e := _arena_enemy() as Bandit
+		_inputs({"crouch": true, "aim": hero.global_position + Vector2(100, -10)})
+		if hero.hp < Hero.MAX_HP:
+			_t = 99.0  # hit: fail now
+			return false
+		return e._shots >= 2 and hero.hp == Hero.MAX_HP, 5.0)
+
+
+func _spawn_step(name: String, kind: String, dist: float) -> void:
+	_add(name, func(_d):
+		_inputs({"aim": hero.global_position + Vector2(100, -20)})
+		hero.hp = Hero.MAX_HP
+		hero._invuln = 0.0
+		hero.global_position = hero.spawn
+		hero.velocity = Vector2.ZERO
+		var e := _make(kind)
+		e.position = hero.spawn + Vector2(dist, 0)
+		level.add_child(e)
+		_mem["e"] = e
+		return true, 1.0)
 
 
 func _arena_checks(kind: String, dist: float, hurt_time: float) -> void:
@@ -405,7 +462,7 @@ func _make(kind: String) -> Enemy:
 
 func _arena_enemy() -> Enemy:
 	# The enemy spawned by this check's "spawn" step (carried across steps).
-	return _carried as Enemy
+	return _carried as Enemy if is_instance_valid(_carried) else null
 
 
 # --- Shared ticks --------------------------------------------------------------------
@@ -473,7 +530,7 @@ func _physics_process(delta: float) -> void:
 		_next()
 	elif _t > step[2]:
 		_fails += 1
-		_log.append("FAIL %-34s tile=%s vel=%s state=%s anim=%s" % [step[0],
+		_log.append("FAIL %-34s melee=%s crouch=%s tile=%s vel=%s state=%s anim=%s" % [step[0], hero._melee, hero.crouching,
 				(hero.global_position / T).snapped(Vector2(0.1, 0.1)), hero.velocity.round(), Hero.S.keys()[hero.state],
 				hero.anim.clip_name])
 		_shot("FAIL_" + str(step[0]))

@@ -491,6 +491,29 @@ def splat():
     return out
 
 
+def whoosh_punch():
+    return env(lowpass(highpass(noise(0.12, 101), 700), lambda t: 1500 + 9000 * t), lambda t: math.sin(math.pi * min(1, t / 0.12)))
+
+
+def whoosh_kick():
+    return env(lowpass(highpass(noise(0.2, 102), 300), lambda t: 900 + 5000 * t), lambda t: math.sin(math.pi * min(1, t / 0.2)))
+
+
+def punch_hit():
+    out = silence(0.2)
+    mix(out, env(lowpass(noise(0.08, 103), 1200), decay(0.012, 0.001)), 0, 1.0)
+    mix(out, env(osc(lambda t: 140 - 200 * t, 0.12), decay(0.025)), 0, 0.9)
+    return drive(out, 2.0)
+
+
+def kick_hit():
+    out = silence(0.3)
+    mix(out, env(lowpass(noise(0.12, 104), 900), decay(0.02, 0.001)), 0, 1.0)
+    mix(out, env(osc(lambda t: 95 - 120 * t, 0.2), decay(0.05)), 0, 1.0)
+    mix(out, env(highpass(noise(0.02, 105), 3000), decay(0.003)), 0, 0.5)
+    return drive(out, 2.5)
+
+
 SFX = [
     gunshot, ricochet, empty_click, reload_open, reload_shell, reload_spin,
     whip_throw, whip_crack, whip_latch,
@@ -498,7 +521,7 @@ SFX = [
     hit_wood, hit_straw, level_clear, amb_canyon_loop, amb_jungle_loop,
     hit_flesh, scorpion_hiss, rattle, snake_hiss, rifle, bandit_groan, jaguar_growl, jaguar_roar,
     stone_grind, slam, glyph_hit, stone_crumble, spike_hit, crumble_crack, gate_rumble, plate_click,
-    gate_tick, checkpoint, squelch, splat,
+    gate_tick, checkpoint, squelch, splat, whoosh_punch, whoosh_kick, punch_hit, kick_hit,
 ]
 
 

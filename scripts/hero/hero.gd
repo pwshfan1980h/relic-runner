@@ -34,6 +34,16 @@ const REEL := 80.0
 const MAX_HP := 3
 const SHOT_RANGE := 420.0
 const SHOT_COOLDOWN := 0.22
+const CROUCH_WALK := 24.0
+const STAND := Vector2(8, 28)
+const CROUCHED := Vector2(8, 20)
+# Melee hitboxes, facing right, relative to the feet: [rect, active from, active to, damage kind]
+const MELEE := {
+	"punch_a": [Rect2(3, -27, 12, 10), 0.03, 0.11, "punch"],
+	"punch_b": [Rect2(3, -27, 13, 10), 0.05, 0.13, "punch"],
+	"front_kick": [Rect2(3, -20, 16, 18), 0.13, 0.26, "kick"],
+	"jump_kick": [Rect2(2, -18, 17, 16), 0.06, 0.3, "kick"],
+}
 
 var state := S.AIR
 var facing := 1
@@ -71,6 +81,12 @@ var _killed_by_spikes := false
 var _flash: PointLight2D
 var _flash_e := 0.0
 var _whip_arm := 0.0  # weight of the far arm tracking the whip tip
+var crouching := false
+var _shape: CollisionShape2D
+var _melee := ""  # current melee move ("" = none)
+var _melee_t := 0.0
+var _melee_hit: Array = []  # instance ids already hit by this move
+var _combo := false  # second punch queued
 
 
 func _ready() -> void:
@@ -79,12 +95,12 @@ func _ready() -> void:
 	collision_mask = 1
 	floor_snap_length = 4.0
 	floor_max_angle = deg_to_rad(50)
-	var shape := CollisionShape2D.new()
+	_shape = CollisionShape2D.new()
 	var rect := RectangleShape2D.new()
-	rect.size = Vector2(8, 28)
-	shape.shape = rect
-	shape.position = Vector2(0, -14)
-	add_child(shape)
+	rect.size = STAND
+	_shape.shape = rect
+	_shape.position = Vector2(0, -STAND.y / 2.0)
+	add_child(_shape)
 	rig = HeroRig.new()
 	rig.z_index = 5
 	add_child(rig)
@@ -151,6 +167,7 @@ func _physics_process(delta: float) -> void:
 		S.ROLL: _roll(delta)
 		S.DEAD: _dead(delta)
 	_weapons()
+	_melee_step(delta)
 	_pose(delta)
 
 
@@ -158,6 +175,11 @@ func _ground(delta: float) -> void:
 	var x := _axis()
 	var running := _held("run")
 	var vx := velocity.x
+	_set_crouch(_held("crouch") and not _skidding or crouching and not _can_stand())
+	if crouching:
+		running = false
+	if _melee == "front_kick":
+		x = 0.0
 	if _skidding:
 		vx = move_toward(vx, 0.0, SKID_DECEL * delta)
 		_turn_after = x != 0.0 and signf(x) != float(facing)
@@ -179,7 +201,9 @@ func _ground(delta: float) -> void:
 		anim.play("skid", 0.06)
 		Audio.play("skid_dirt", -6.0, 1.0, 0.1)
 	else:
-		var target := x * (RUN if running else WALK)
+		var target := x * (CROUCH_WALK if crouching else (RUN if running else WALK))
+		if _melee.begins_with("punch"):
+			target *= 0.4
 		var acc := ACCEL_RUN if running and absf(target) > absf(vx) else ACCEL_WALK
 		vx = move_toward(vx, target, acc * delta)
 	_turn_t = maxf(0.0, _turn_t - delta)
@@ -193,11 +217,13 @@ func _ground(delta: float) -> void:
 		else:
 			_face_mouse()
 
-	if _buffer > 0.0:
+	if _buffer > 0.0 and (not crouching or _can_stand()):
+		_set_crouch(false)
 		_jump()
 		return
 	move_and_slide()
 	if not is_on_floor():
+		_set_crouch(false)
 		# Walked off an edge: a little coyote time before we count as falling.
 		_coyote = COYOTE
 		_enter_air(false)
@@ -208,6 +234,16 @@ func _ground(delta: float) -> void:
 func _pick_ground_anim(delta: float) -> void:
 	var vx := velocity.x
 	if _skidding or anim.clip_name == "turn" and not anim.finished():
+		return
+	if _melee == "front_kick":
+		return
+	if crouching:
+		if absf(vx) > 3.0:
+			anim.play("crouch_walk", 0.12)
+			anim.speed = (1.0 if signf(vx) == float(facing) else -1.0) * clampf(absf(vx) / CROUCH_WALK, 0.3, 1.4)
+		else:
+			anim.play("crouch", 0.12)
+		_idle_t = 0.0
 		return
 	var moving := absf(vx) > 5.0
 	var one_shot := anim.clip_name in ["land", "skid_stop", "idle_hat", "hurt"] and not anim.finished()
@@ -286,12 +322,14 @@ func _air(delta: float) -> void:
 	if is_on_floor():
 		_land()
 		return
-	if velocity.y > 90.0 and anim.clip_name != "fall" and (anim.finished() or not _long):
+	if velocity.y > 90.0 and anim.clip_name != "fall" and (anim.finished() or not _long) and _melee != "jump_kick":
 		anim.play("fall", 0.2)
 
 
 func _land() -> void:
 	var fall := global_position.y - _peak_y
+	if _melee == "jump_kick":
+		_melee = ""
 	state = S.GROUND
 	_long = false
 	Fx.puff(global_position, 5 if fall > 40.0 else 3)
@@ -482,9 +520,17 @@ func _weapons() -> void:
 	whip.step(get_physics_process_delta_time(), hand_b)
 	rig.whip_coil.visible = not whip.active()
 
+	if _can_act() and state != S.SWING:
+		if _pressed("punch"):
+			if _melee == "punch_a" and _melee_t > 0.06:
+				_combo = true
+			elif _melee == "":
+				_start_melee("punch_a")
+		if _pressed("kick") and _melee == "":
+			_start_melee("jump_kick" if state == S.AIR else "front_kick")
 	if _pressed("reload") and ammo < 6 and not _reloading:
 		_start_reload()
-	if _pressed("shoot") and _can_act() and not _reloading and state != S.ROLL:
+	if _pressed("shoot") and _can_act() and not _reloading and state != S.ROLL and not _melee.ends_with("kick"):
 		if ammo <= 0:
 			Audio.play("empty_click", -4.0)
 			_start_reload()
@@ -530,6 +576,83 @@ func _shoot() -> void:
 			Fx.chips(end, hit.normal, 3)
 			Audio.play_at("ricochet", end, -6.0, 0.15)
 	ammo_changed.emit(ammo, false)
+
+
+# --- Crouch & melee ---------------------------------------------------------------
+
+func _set_crouch(on: bool) -> void:
+	if on == crouching:
+		return
+	crouching = on
+	var size := CROUCHED if on else STAND
+	(_shape.shape as RectangleShape2D).size = size
+	_shape.position = Vector2(0, -size.y / 2.0)
+
+
+## Room to stand up here (no ceiling within standing height)?
+func _can_stand() -> bool:
+	var params := PhysicsShapeQueryParameters2D.new()
+	var rect := RectangleShape2D.new()
+	rect.size = STAND - Vector2(1, 1)
+	params.shape = rect
+	params.collision_mask = 1
+	params.transform = Transform2D(0.0, global_position + Vector2(0, -STAND.y / 2.0 - 0.5))
+	return get_world_2d().direct_space_state.intersect_shape(params, 1).is_empty()
+
+
+func _start_melee(move: String) -> void:
+	_melee = move
+	_melee_t = 0.0
+	_melee_hit.clear()
+	_combo = false
+	_face_mouse()
+	if move.begins_with("punch"):
+		anim.play_overlay(move)
+	else:
+		anim.play(move, 0.04, 0.0, true)
+	Audio.play("whoosh_punch" if move.begins_with("punch") else "whoosh_kick", -6.0, 1.0, 0.1)
+
+
+func _melee_step(delta: float) -> void:
+	if _melee == "":
+		return
+	if state not in [S.GROUND, S.AIR]:
+		_melee = ""
+		return
+	_melee_t += delta
+	var spec: Array = MELEE[_melee]
+	var len: float = HeroAnims.clips[_melee]["len"]
+	if _melee_t >= spec[1] and _melee_t <= spec[2]:
+		var r: Rect2 = spec[0]
+		if crouching:
+			r.position.y += 14.0  # crouched punches reach critters on the ground
+		_melee_hits(r, spec[3])
+	if _melee_t >= len:
+		if _melee == "punch_a" and _combo:
+			_start_melee("punch_b")
+		else:
+			_melee = ""
+
+
+func _melee_hits(r: Rect2, kind: String) -> void:
+	if facing < 0:
+		r.position.x = -r.position.x - r.size.x
+	var params := PhysicsShapeQueryParameters2D.new()
+	var rect := RectangleShape2D.new()
+	rect.size = r.size
+	params.shape = rect
+	params.collision_mask = 4
+	params.transform = Transform2D(0.0, global_position + r.get_center())
+	for hit in get_world_2d().direct_space_state.intersect_shape(params, 8):
+		var c: Object = hit.collider
+		if c == null or c.get_instance_id() in _melee_hit or not c.has_method("take_hit"):
+			continue
+		_melee_hit.append(c.get_instance_id())
+		var at := global_position + r.get_center() + Vector2(facing * r.size.x * 0.3, 0)
+		c.take_hit(1, Vector2(facing, 0), at, kind)
+		Audio.play_at("kick_hit" if kind == "kick" else "punch_hit", at, -2.0, 0.12)
+		Fx.add_shake(0.12 if kind == "punch" else 0.25)
+		Fx.hitstop(0.03 if kind == "punch" else 0.06)
 
 
 # --- Damage ------------------------------------------------------------------------
@@ -677,7 +800,7 @@ func _pose(delta: float) -> void:
 
 	var aim := aim_point()
 	var aiming := state in [S.GROUND, S.AIR, S.SWING] and not _reloading and anim.clip_name != "idle_hat" \
-			and anim.clip_name != "hurt"
+			and anim.clip_name != "hurt" and _melee == ""
 	_aim_w = move_toward(_aim_w, 1.0 if aiming else 0.0, delta * 8.0)
 	rig.aim_arm("f", aim, _aim_w, -6.0 - _recoil * 50.0)
 	(rig.bones["ua_f"] as Node2D).rotation -= _recoil * 0.35 * _aim_w

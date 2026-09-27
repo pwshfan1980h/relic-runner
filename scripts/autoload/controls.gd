@@ -12,6 +12,10 @@ const KEYS := {
 	"reload": [KEY_R],
 	"restart": [KEY_BACKSPACE],
 	"menu": [KEY_ESCAPE],
+	"crouch": [KEY_C],
+	"punch": [KEY_E],
+	"kick": [KEY_F],
+	"inventory": [KEY_TAB, KEY_I],
 }
 const MOUSE := {
 	"shoot": MOUSE_BUTTON_LEFT,
@@ -26,6 +30,11 @@ func _ready() -> void:
 			var ev := InputEventKey.new()
 			ev.physical_keycode = k
 			InputMap.action_add_event(action, ev)
+	# Ctrl also crouches on desktop; in a browser Ctrl+W would close the tab.
+	if not OS.has_feature("web"):
+		var ctrl := InputEventKey.new()
+		ctrl.physical_keycode = KEY_CTRL
+		InputMap.action_add_event("crouch", ctrl)
 	for action in MOUSE:
 		_ensure(action)
 		var ev := InputEventMouseButton.new()

@@ -192,7 +192,46 @@ static func build() -> void:
 				"th_f": -24.0, "sh_f": 36.0, "th_b": 8.0, "sh_b": 26.0}],
 	])
 
+	# Crouch: deep knee bend, torso folded forward so the head sits under bullet height.
+	var crouch_pose := {"th_f": -85.0, "sh_f": 125.0, "ft_f": 0.0, "th_b": -55.0, "sh_b": 135.0, "ft_b": 30.0,
+			"torso": 45.0, "head": 0.0, "ua_b": 30.0, "fa_b": -60.0, "ua_f": 10.0, "fa_f": -50.0}
+	_add("crouch", 1.8, true, 1, [
+		[0.0, crouch_pose],
+		[0.9, crouch_pose.merged({"torso": 47.0, "hy": -0.3}, true)],
+		[1.8, crouch_pose],
+	])
+	var cw_a := crouch_pose.merged({"th_f": -95.0, "sh_f": 115.0, "th_b": -45.0, "sh_b": 140.0}, true)
+	var cw_b := crouch_pose.merged({"th_f": -75.0, "sh_f": 130.0, "th_b": -65.0, "sh_b": 120.0, "hy": -0.5}, true)
+	_add("crouch_walk", 0.7, true, 1, _gait([cw_a, cw_b], 0.7), [[0.0, "step"], [0.35, "step"]])
+	# Front kick: chamber the knee, snap the boot out, retract. Full body.
+	_add("front_kick", 0.45, false, 1, [
+		[0.0, stand],
+		[0.1, {"th_f": -95.0, "sh_f": 105.0, "ft_f": 10.0, "torso": -4.0, "ua_b": 25.0, "fa_b": -60.0, "ua_f": -20.0, "fa_f": -60.0}],
+		[0.18, {"th_f": -98.0, "sh_f": 4.0, "ft_f": -70.0, "torso": -14.0, "head": 2.0, "th_b": 8.0, "sh_b": 8.0,
+				"ua_b": 35.0, "fa_b": -40.0, "ua_f": -35.0, "fa_f": -40.0}],
+		[0.3, {"th_f": -80.0, "sh_f": 95.0, "ft_f": 10.0, "torso": -4.0, "ua_b": 20.0, "fa_b": -60.0, "ua_f": -20.0, "fa_f": -60.0}],
+		[0.45, stand],
+	])
+	_add("jump_kick", 0.35, false, 0, [
+		[0.0, {"th_f": -60.0, "sh_f": 90.0, "th_b": -20.0, "sh_b": 100.0, "torso": 5.0, "ua_b": -40.0}],
+		[0.1, {"th_f": -85.0, "sh_f": 2.0, "ft_f": -60.0, "th_b": 25.0, "sh_b": 95.0, "ft_b": 30.0, "torso": -18.0,
+				"ua_b": -80.0, "fa_b": -20.0}],
+		[0.35, {"th_f": -80.0, "sh_f": 8.0, "ft_f": -55.0, "th_b": 25.0, "sh_b": 95.0, "ft_b": 30.0, "torso": -15.0,
+				"ua_b": -70.0, "fa_b": -30.0}],
+	])
+
 	# Upper-body overlays (only the arm channels are used).
+	# Punches: guard up, jab with the near fist, cross with the far fist.
+	_add("punch_a", 0.22, false, 0, [
+		[0.0, {"ua_f": -30.0, "fa_f": -120.0, "ua_b": -20.0, "fa_b": -115.0}],
+		[0.06, {"ua_f": -88.0, "fa_f": -4.0, "ua_b": -22.0, "fa_b": -118.0}],
+		[0.22, {"ua_f": -30.0, "fa_f": -120.0, "ua_b": -20.0, "fa_b": -115.0}],
+	])
+	_add("punch_b", 0.26, false, 0, [
+		[0.0, {"ua_f": -30.0, "fa_f": -120.0, "ua_b": -20.0, "fa_b": -115.0}],
+		[0.08, {"ua_f": -20.0, "fa_f": -125.0, "ua_b": -92.0, "fa_b": -2.0}],
+		[0.26, {"ua_f": -30.0, "fa_f": -120.0, "ua_b": -20.0, "fa_b": -115.0}],
+	])
 	_add("reload", 0.9, false, 0, [
 		[0.0, {"ua_f": -10.0, "fa_f": -100.0, "ua_b": -10.0, "fa_b": -110.0}],
 		[0.2, {"ua_f": -5.0, "fa_f": -115.0, "ua_b": -20.0, "fa_b": -100.0}],

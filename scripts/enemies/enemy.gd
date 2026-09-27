@@ -80,7 +80,16 @@ func take_hit(dmg: int, dir: Vector2, at: Vector2, kind := "bullet") -> void:
 		return
 	hp -= dmg
 	_flash = 0.12
-	velocity.x += dir.x * (50.0 if kind == "bullet" else 140.0)
+	match kind:
+		"kick":
+			# Kicks launch: off ledges, into spikes.
+			velocity = Vector2(dir.x * 260.0 * knock_scale, -140.0 * knock_scale)
+			stun = maxf(stun, 0.6)
+		"punch":
+			velocity.x += dir.x * 120.0 * knock_scale
+			stun = maxf(stun, 0.25)
+		_:
+			velocity.x += dir.x * 50.0 * knock_scale
 	bleed(at, dir, 10)
 	Audio.play_at("hit_flesh", at, -4.0, 0.15)
 	_on_hit()
@@ -141,6 +150,7 @@ var death_at := Vector2.ZERO
 var voice_die := "human_die"
 var voice_hurt := ""
 var death_angle := PI  # how far the body tips over when it dies (drawn enemies)
+var knock_scale := 1.0  # heavy enemies shrug off knockback
 
 
 func die(kind := "bullet", dir := Vector2.ZERO, at := Vector2.INF) -> void:

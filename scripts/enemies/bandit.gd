@@ -89,7 +89,8 @@ func _face_hero() -> void:
 
 func _fire() -> void:
 	var muzzle := rig.muzzle_global()
-	var target := hero.global_position + Vector2(randf_range(-3, 3), -18 + randf_range(-6, 6))
+	# Chest height of a standing man: crouching under it dodges the shot.
+	var target := hero.global_position + Vector2(randf_range(-3, 3), -24 + randf_range(-3, 3))
 	var dir := (target - muzzle).normalized()
 	var q := PhysicsRayQueryParameters2D.create(muzzle, muzzle + dir * 420.0, 1 | 2)
 	var hit := get_world_2d().direct_space_state.intersect_ray(q)

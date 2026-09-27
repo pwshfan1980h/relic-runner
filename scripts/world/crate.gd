@@ -28,8 +28,9 @@ func whip_pull(to: Vector2) -> void:
 	Audio.play_at("hit_wood", global_position, -6.0)
 
 
-func take_hit(_dmg: int, dir: Vector2, at: Vector2, _kind := "bullet") -> void:
-	apply_impulse(dir * 90.0, at - global_position)
+func take_hit(_dmg: int, dir: Vector2, at: Vector2, kind := "bullet") -> void:
+	var force := {"kick": 420.0, "punch": 160.0}.get(kind, 90.0) as float
+	apply_impulse((dir + (Vector2(0, -0.5) if kind == "kick" else Vector2.ZERO)) * force * mass * 0.5, at - global_position)
 	Fx.chips(at, -dir, 4, Color("#a07040"))
 	Audio.play_at("hit_wood", at, -4.0)
 
