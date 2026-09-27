@@ -23,6 +23,10 @@ A 90s-style cinematic platformer in the vein of *Prince of Persia*, *Flashback* 
 | Left click | Revolver shot toward the mouse |
 | Right click | Whip: swing on an anchor / yank a whippable target / crack |
 | R | Reload |
+| C | Crouch (bandit bullets fly over you); Ctrl too on desktop |
+| E | Punch (press again for a jab/cross combo) |
+| F | Front kick (launches enemies off ledges); jump kick in the air |
+| Tab / I | Loot inventory (text) |
 
 ## Look
 - 480×270 internal resolution, nearest-neighbour upscale, hero ~32px tall.
@@ -38,14 +42,31 @@ idle, idle fidget (hat tug), walk (and backpedal), run, skid, skid recovery, run
 standing jump, running long jump, fall, land, hard-landing roll, ledge hang, ledge climb,
 whip swing, whip pull, reload, hurt, death. Aim and head-look are layered live on top.
 
-## Enemies (3–5)
-| Enemy | Biome | Behaviour | Whip | Revolver |
+## Enemies
+| Enemy | Biome | Behaviour | Whip | Takes |
 |---|---|---|---|---|
-| Scorpion | Canyon | Scuttles, tail-sting in close | Flip it over (stunned) | 1 shot |
-| Rattlesnake | Canyon | Coils in pits, lunging strike | Yank out of its pit | 1 shot |
-| Bandit gunman | Both | Takes cover, fires a rifle, reloads | Yank off ledges | 2 shots |
-| Jaguar | Jungle | Stalks, pounces across gaps | Crack to scare it back | 3 shots |
-| Stone Idol Guardian | Jungle | Slow, armoured; weak spot glows when it attacks | Can't be pulled | Only the weak spot |
+| Scorpion | Canyon | Tail sting up close | Flips it over | 1 hit (crouch-punch it) |
+| Rattlesnake | Canyon | Rattles, then lunges | Yanks it out | 1 hit |
+| Bandit | Both | A glint, then a rifle shot | Pulled off his feet | 2 hits, or 1 headshot |
+| Machete bandit | Both | Closes in, raises the blade, chops | Pulled off his feet | 2 hits |
+| Brute | Both | Two-punch combo, then a barge | Only staggers him | 5 hits; kicks and ledges help |
+| Attack dog | Both | Packs; barks, leaps to bite | Runs off yelping | 2 hits |
+| Attack llama | Canyon | Spit at range, rear kick up close | Charges you, furious | 4 hits |
+| Jaguar | Jungle | Stalks, crouches, pounces | Runs off | 3 hits |
+| Stone Idol Guardian | Jungle | Raises its arms, slams, shockwave | Too heavy | Only its glowing glyph |
+
+## Carnage
+Humans die as ragdolls built from their own polygons. Headshots, point-blank shots, kicks and spikes can tear
+heads and limbs off. Blood bursts, sprays, and stains floors and walls; scorpions bleed green. Each enemy type
+has a voice set of sourced screams (see CREDITS.md). Gore can be switched off in the menu (G).
+
+## Loot
+Enemies drop coins, bandages (heal 1) and treasure by loot table (tough enemies are luckier; the Guardian
+always drops a legendary idol). Each item comes from a seed: kind, rarity (common/uncommon/rare/legendary),
+material, name, value and a procedural 12x12 icon. Hover a drop to read its name. Tab shows the text inventory.
+
+## Music
+Kevin MacLeod (incompetech.com), CC BY 4.0: one track per level plus a boss track (see CREDITS.md).
 
 ## Biomes and maps (three per biome)
 **Rocky dirt canyon:** ochre strata, sun haze, iron rings on chains, dead scrub.

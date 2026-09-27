@@ -101,10 +101,11 @@ kbd { font: 500 12px var(--mono); border: 1px solid var(--rule); border-bottom-w
 
 <div class="wrap">
   <header class="title">
-    <span class="eyebrow">Art bible · checkpoint 1 · hero, whip &amp; revolver</span>
+    <span class="eyebrow">Art bible · build 2 · carnage, melee, loot &amp; beasts</span>
     <h1>Relic Runner</h1>
     <p class="lede">A 90s cinematic platformer in the line of <em>Prince of Persia</em>, <em>Flashback</em> and <em>Another World</em>.
-      A fedora-wearing adventurer runs, skids, swings on a bullwhip and fires a revolver aimed with the mouse.
+      A fedora-wearing adventurer runs, skids, swings on a bullwhip, fires a mouse-aimed revolver, punches and kicks.
+      Music: Kevin MacLeod (incompetech.com), CC BY 4.0.
       Every image on this page is rendered from the playable Godot build.</p>
   </header>
 
@@ -138,6 +139,10 @@ kbd { font: 500 12px var(--mono); border: 1px solid var(--rule); border-bottom-w
       <div class="key"><kbd>LMB</kbd><span>Revolver shot at the cursor. 6 rounds, ricochets off rock.</span></div>
       <div class="key"><kbd>RMB</kbd><span>Whip: swing on an anchor, yank a target, or crack.</span></div>
       <div class="key"><kbd>R</kbd><span>Reload, one shell at a time.</span></div>
+      <div class="key"><kbd>C</kbd><span>Crouch. Bandit bullets fly over you.</span></div>
+      <div class="key"><kbd>E</kbd><span>Punch; press again for the cross.</span></div>
+      <div class="key"><kbd>F</kbd><span>Front kick, or a jump kick in the air. Kick enemies off ledges.</span></div>
+      <div class="key"><kbd>Tab</kbd><span>Loot inventory (text).</span></div>
       <div class="key"><kbd>Mouse</kbd><span>Attention. Head and gun follow it, and the body turns to it unless running.</span></div>
     </div>
   </section>
@@ -180,25 +185,43 @@ kbd { font: 500 12px var(--mono); border: 1px solid var(--rule); border-bottom-w
   </section>
 
   <section id="cast">
-    <span class="eyebrow">05 · Next build</span>
-    <h2>Enemies</h2>
-    <p class="muted">Five enemies, rigged the same way as the hero. Each one reacts differently to the whip.</p>
+    <span class="eyebrow">05 · Built</span>
+    <h2>Enemies &amp; carnage</h2>
+    <p class="muted">Humans die as ragdolls built from their own polygons. Heads and limbs can come off on headshots, point-blank shots, kicks and spikes.
+      Animals get their own deaths. Each type has a voice set of sourced screams (credited in CREDITS.md). Gore can be switched off in the menu.</p>
+    <div class="two">
+      <figure><img class="px" src="shots/brawlers.png" alt="Brute and machete bandit attacking" width="720" height="258"><figcaption>Tough guys: the Brute throws a two-punch combo, then barges. The machete bandit raises the blade and chops.</figcaption></figure>
+      <figure><img class="px" src="shots/beasts.png" alt="Attack dog leaping, llama spitting and kicking" width="780" height="276"><figcaption>Beasts: the attack dog leaps to bite. The llama lobs spit (it smears your screen) and rear-kicks up close.</figcaption></figure>
+    </div>
+    <figure><img class="px" src="shots/deaths.png" alt="Ragdoll corpses and blood after fights" width="560" height="444"><figcaption>After the fights: ragdoll bandits, the jaguar on its side, the Guardian's rubble, blood on the ground.</figcaption></figure>
     <div class="table-wrap"><table>
-      <thead><tr><th>Enemy</th><th>Biome</th><th>Behaviour</th><th>Whip</th><th>Revolver</th></tr></thead>
+      <thead><tr><th>Enemy</th><th>Biome</th><th>Behaviour</th><th>Whip</th><th>Takes</th></tr></thead>
       <tbody>
-        <tr><td>Scorpion</td><td><span class="tag canyon">canyon</span></td><td>Scuttles along floors, tail-stings in close</td><td>Flips it over, stunned</td><td>1 shot</td></tr>
-        <tr><td>Rattlesnake</td><td><span class="tag canyon">canyon</span></td><td>Coiled in pits; the rattle warns of a lunging strike</td><td>Yanks it out of the pit</td><td>1 shot</td></tr>
-        <tr><td>Bandit gunman</td><td><span class="tag canyon">canyon</span> <span class="tag jungle">jungle</span></td><td>Takes cover, fires a rifle, pauses to reload</td><td>Pulls them off ledges</td><td>2 shots</td></tr>
-        <tr><td>Jaguar</td><td><span class="tag jungle">jungle</span></td><td>Stalks along the ground floor, pounces across gaps</td><td>A crack drives it back</td><td>3 shots</td></tr>
-        <tr><td>Stone Idol Guardian</td><td><span class="tag jungle">jungle</span></td><td>Slow and armoured; its chest glyph glows mid-attack</td><td>Too heavy to pull</td><td>Glyph only</td></tr>
+        <tr><td>Scorpion</td><td><span class="tag canyon">canyon</span></td><td>Tail sting up close</td><td>Flips it over</td><td>1 hit (crouch-punch it)</td></tr>
+        <tr><td>Rattlesnake</td><td><span class="tag canyon">canyon</span></td><td>Rattles, then lunges</td><td>Yanks it out</td><td>1 hit, splits in two</td></tr>
+        <tr><td>Bandit</td><td><span class="tag canyon">canyon</span> <span class="tag jungle">jungle</span></td><td>A glint, then a rifle shot (crouch under it)</td><td>Pulled off his feet</td><td>2 hits or a headshot</td></tr>
+        <tr><td>Machete bandit</td><td><span class="tag canyon">canyon</span> <span class="tag jungle">jungle</span></td><td>Closes in, raises the blade, chops</td><td>Pulled off his feet</td><td>2 hits</td></tr>
+        <tr><td>Brute</td><td><span class="tag canyon">canyon</span> <span class="tag jungle">jungle</span></td><td>Two-punch combo, then a barge</td><td>Only staggers him</td><td>5 hits; kicks and ledges help</td></tr>
+        <tr><td>Attack dog</td><td><span class="tag canyon">canyon</span> <span class="tag jungle">jungle</span></td><td>Packs; barks, leaps to bite</td><td>Runs off yelping</td><td>2 hits</td></tr>
+        <tr><td>Attack llama</td><td><span class="tag canyon">canyon</span></td><td>Spit at range, rear kick up close</td><td>Charges you, furious</td><td>4 hits</td></tr>
+        <tr><td>Jaguar</td><td><span class="tag jungle">jungle</span></td><td>Stalks, crouches, pounces</td><td>Runs off</td><td>3 hits</td></tr>
+        <tr><td>Stone Idol Guardian</td><td><span class="tag jungle">jungle</span></td><td>Arms up, slam, shockwave</td><td>Too heavy</td><td>Only its glowing glyph</td></tr>
       </tbody>
     </table></div>
   </section>
 
+  <section id="loot">
+    <span class="eyebrow">06 · Loot</span>
+    <h2>Procedural treasure</h2>
+    <p class="muted">Enemies drop coins, bandages and treasure. Each item comes from a seed: kind, rarity, material, name, value and a 12×12 icon
+      drawn at runtime. Hover a drop to read its name, and press Tab for the text inventory. Frame colours show rarity: grey common, green uncommon, blue rare, orange legendary.</p>
+    <figure><img class="px" src="items.png" alt="Grid of 48 generated loot icons" width="512" height="384" style="max-width:512px"><figcaption>48 generated items, e.g. "Clear Emerald", "Polished Bronze Totem", "Gold Idol of the Sun Cult".</figcaption></figure>
+  </section>
+
   <section id="maps">
-    <span class="eyebrow">06 · Next build</span>
+    <span class="eyebrow">07 · Built</span>
     <h2>Maps</h2>
-    <p class="muted">Three maps per biome, written as editable ASCII grids. The level metrics are a 3-tile grab reach, a 5-tile running jump and a 200px whip range.</p>
+    <p class="muted">Three maps per biome, written as editable ASCII grids. All are playable, and the test bot finishes every one. The level metrics are a 3-tile grab reach, a 5-tile running jump and a 200px whip range.</p>
     <div class="maps">
       <div class="map"><span class="n">Canyon 1</span><h3>Dry Gulch</h3><p class="muted">Tutorial run: skid, jump, long jump, first anchor, one scorpion.</p></div>
       <div class="map"><span class="n">Canyon 2</span><h3>Rattler Mesa</h3><p class="muted">A vertical climb of ledge grabs and crumbling ledges over snake pits.</p></div>
@@ -234,6 +257,20 @@ const CLIPS = [
     ["swing", 1.0, true, "Body hangs from the rope (rotated live)."],
     ["whip_pull", 0.35, false, "Arm overlay: yank a target in."],
     ["reload", 0.9, false, "Arm overlay: thumbing in shells."],
+  ]],
+  ["Crouch & melee", [
+    ["crouch", 1.8, true, "C: under bullet height."],
+    ["crouch_walk", 0.7, true, "A low shuffle."],
+    ["punch_a", 0.22, false, "E: jab (arms only)."],
+    ["punch_b", 0.26, false, "E again: cross."],
+    ["front_kick", 0.45, false, "F: launches enemies."],
+    ["jump_kick", 0.35, false, "F in the air."],
+  ]],
+  ["Enemy tells", [
+    ["windup", 0.4, false, "Brute cocks a fist."],
+    ["raise_blade", 0.3, false, "Machete goes up."],
+    ["chop", 0.3, false, "…and comes down."],
+    ["barge", 0.5, true, "Brute shoulder charge."],
   ]],
   ["Damage", [
     ["hurt", 0.35, false, "Knocked back."],

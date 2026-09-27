@@ -19,6 +19,10 @@ crouch
 crouch_walk
 front_kick
 jump_kick
+windup
+raise_blade
+chop
+barge
 punch_a
 punch_b
 reload
