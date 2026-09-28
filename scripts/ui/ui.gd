@@ -105,6 +105,16 @@ static func panel(parent: Node, rect: Rect2) -> ColorRect:
 ## A cast member's rig (for portraits and NPCs), dressed from Story.CAST.
 static func cast_rig(id: String) -> HeroRig:
 	var rig := HeroRig.new()
+	if id in ["bandit", "bandit2"]:
+		rig.recolor(Bandit.SWAP)
+		rig.make_rifle()
+		rig.facing = 1
+		return rig
+	if id == "brute":
+		rig.recolor(Brawler.BRUTE_SWAP)
+		rig.make_brute_head()
+		rig.facing = 1
+		return rig
 	var c: Dictionary = Story.CAST.get(id, {})
 	if c.has("swap"):
 		rig.recolor(c["swap"])

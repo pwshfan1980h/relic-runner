@@ -12,7 +12,7 @@ signal ammo_changed(ammo: int, reloading: bool)
 signal health_changed(hp: int)
 signal grenades_changed(n: int)
 
-enum S { GROUND, AIR, HANG, CLIMB, SWING, ROLL, DEAD }
+enum S { GROUND, AIR, HANG, CLIMB, SWING, ROLL, DEAD, SWIM }
 
 const WALK := 44.0
 const RUN := 125.0
@@ -40,6 +40,16 @@ const SHOT_COOLDOWN := 0.22
 const CROUCH_WALK := 24.0
 const AIM_WALK := 34.0
 const MAX_GRENADES := 5
+# Water (see Water and docs/spikes/water.md).
+const SWIM_ACCEL := 360.0
+const SWIM_MAX := 80.0
+const SWIM_FAST := 120.0
+const TREAD_DEPTH := 20.0  # feet this far under the surface when treading water
+const AIR_MAX := 10.0
+## Standing in water: [feet depth up to, speed factor, jump factor, can run]. Knee, waist,
+## chest; deeper than that you swim.
+const WADE := [[9.0, 0.85, 0.95, true], [17.0, 0.6, 0.8, false], [99.0, 0.4, 0.6, false]]
+signal air_changed(air: float)
 const START_GRENADES := 3
 const TAP_TIME := 0.18  # Q held longer than this shows the arc
 const QUICK_SPREAD := 0.07  # radians of hip-fire wobble
@@ -99,6 +109,10 @@ var _melee := ""  # current melee move ("" = none)
 var _melee_t := 0.0
 var _melee_hit: Array = []  # instance ids already hit by this move
 var _combo := false  # second punch queued
+var water: Water  # the water we're in (swimming or wading), or null
+var air := AIR_MAX
+var _air_hurt := 0.0
+var _was_under := false
 var _smear_prev := Vector2.INF  # last fist/boot point, for the motion smear
 const SMEAR_TIPS := {"punch_a": ["hand_f", Vector2(0, 1), 3.0], "punch_b": ["hand_b", Vector2(0, 1), 3.0],
 		"front_kick": ["ft_f", Vector2(4.2, 0.5), 4.5], "jump_kick": ["ft_f", Vector2(4.2, 0.5), 4.5]}
@@ -194,7 +208,9 @@ func _physics_process(delta: float) -> void:
 	_invuln = maxf(0.0, _invuln - delta)
 	if state != S.DEAD:
 		rig.visible = _invuln <= 0.0 or fmod(_invuln, 0.12) < 0.07
+	_water_check(delta)
 	match state:
+		S.SWIM: _swim(delta)
 		S.GROUND: _ground(delta)
 		S.AIR: _air(delta)
 		S.HANG: _hang(delta)
@@ -209,7 +225,8 @@ func _physics_process(delta: float) -> void:
 
 func _ground(delta: float) -> void:
 	var x := _axis()
-	var running := _held("run") and not _arm_up()
+	var wade := wading()
+	var running: bool = _held("run") and not _arm_up() and wade[2]
 	var vx := velocity.x
 	_set_crouch(_held("crouch") and not _skidding or crouching and not _can_stand())
 	if crouching:
@@ -238,6 +255,7 @@ func _ground(delta: float) -> void:
 		Audio.play("skid_dirt", -6.0, 1.0, 0.1)
 	else:
 		var target := x * (CROUCH_WALK if crouching else (RUN if running else (AIM_WALK if _arm_up() else WALK)))
+		target *= wade[0]
 		# Hills: slower climbing, a little faster going down.
 		if is_on_floor() and x != 0.0:
 			var n := get_floor_normal()
@@ -266,6 +284,12 @@ func _ground(delta: float) -> void:
 		_jump()
 		return
 	move_and_slide()
+	# Deep in water, walking into a bank: haul yourself out by its lip.
+	if water and is_on_wall() and x != 0.0 and signf(x) == float(facing) and not wade[2]:
+		var lip := _find_ledge()
+		if lip != Vector2.INF:
+			_grab(lip)
+			return
 	if not is_on_floor():
 		_set_crouch(false)
 		# Walked off an edge: a little coyote time before we count as falling.
@@ -324,7 +348,7 @@ func _jump() -> void:
 		Audio.play("jump", -4.0, 0.9, 0.05)
 	else:
 		_long = false
-		velocity.y = -JUMP_V
+		velocity.y = -JUMP_V * wading()[1]
 		anim.play("jump", 0.06)
 		Audio.play("jump", -6.0, 1.05, 0.05)
 	Fx.puff(global_position, 4)
@@ -547,6 +571,118 @@ func _release_swing(boost := false) -> void:
 
 # --- Weapons -----------------------------------------------------------------------
 
+# --- Water -------------------------------------------------------------------------
+
+## Deep enough at the chest: swim. Only the feet wet: wade. Also the air meter.
+## How deep we're standing: [speed factor, jump factor, can run] (dry: [1, 1, true]).
+func wading() -> Array:
+	if water == null or state == S.SWIM:
+		return [1.0, 1.0, true]
+	var d := global_position.y - water.surface_y(global_position.x)
+	for w in WADE:
+		if d <= w[0]:
+			return [w[1], w[2], w[3]]
+	return [WADE[-1][1], WADE[-1][2], false]
+
+
+func _water_check(delta: float) -> void:
+	water = Water.at(get_tree(), global_position + Vector2(0, -2))
+	if state in [S.GROUND, S.AIR, S.ROLL] and water:
+		var chest := global_position.y - 16.0
+		var floor_depth := water.depth_at(global_position.x)  # resting depth: waves can't tip us into swimming
+		if chest > water.surface_y(global_position.x) and floor_depth > 26.0:
+			_enter_swim()
+	elif state == S.SWIM and water == null:
+		_leave_swim()
+	# Breath: the head (upright) or the front of the body (swimming) under the surface.
+	var head := global_position + Vector2(0, -26)
+	if state == S.SWIM:
+		head = global_position + Vector2(0, -10) + Vector2(0, -14).rotated(rig.rotation)
+	var under := Water.at(get_tree(), head) != null and state != S.DEAD
+	var before := air
+	if under:
+		air = maxf(0.0, air - delta)
+		if randf() < delta * 2.5:
+			Fx.bubbles(head, 1)
+		if air <= 0.0:
+			_air_hurt -= delta
+			if _air_hurt <= 0.0:
+				_air_hurt = 1.5
+				hurt(1, Vector2.ZERO)
+				Fx.bubbles(head, 6)
+	else:
+		if _was_under and air < AIR_MAX * 0.4:
+			Audio.play("gasp", -6.0, 1.0, 0.1)
+		air = minf(AIR_MAX, air + delta * 4.0)
+		_air_hurt = 0.0
+	_was_under = under
+	if absf(before - air) > 0.0:
+		air_changed.emit(air)
+
+
+func _enter_swim() -> void:
+	state = S.SWIM
+	_skidding = false
+	_set_crouch(true)  # a smaller box: swims through two-tile gaps
+	whip.release()
+	_anchor = null
+	# The water takes most of the fall.
+	velocity = Vector2(velocity.x * 0.5, velocity.y * 0.25)
+	anim.play("tread", 0.15)
+
+
+func _leave_swim() -> void:
+	_set_crouch(false)
+	if not _can_stand():
+		_set_crouch(true)
+	_enter_air(false)
+	anim.play("fall", 0.15)
+
+
+func _swim(delta: float) -> void:
+	var surf := water.surface_y(global_position.x)
+	var dir := Vector2(_axis(), float(_held("down")) - float(_held("up")))
+	var max_speed := SWIM_FAST if _held("run") else SWIM_MAX
+	var treading := global_position.y - surf < TREAD_DEPTH + 6.0 and not _held("down")
+	if dir != Vector2.ZERO:
+		velocity += dir.normalized() * SWIM_ACCEL * delta
+		velocity = velocity.limit_length(max_speed)
+	else:
+		velocity *= exp(-2.4 * delta)
+	# Buoyancy: float up to treading depth unless diving.
+	if not _held("down"):
+		var want := surf + TREAD_DEPTH
+		velocity.y += clampf((want - global_position.y) * 4.0, -120.0, 90.0) * delta
+	# Water resists vertical motion: bobbing settles instead of bouncing.
+	velocity.y *= exp(-3.5 * delta)
+	velocity.y = clampf(velocity.y, -max_speed, max_speed)
+	if absf(velocity.x) > 8.0 and not _arm_up():
+		_set_facing(int(signf(velocity.x)))
+	elif _arm_up():
+		_face_mouse()
+	# At the surface: SPACE kicks up out of the water; pushing into a bank grabs it.
+	if treading and _buffer > 0.0:
+		_buffer = 0.0
+		_leave_swim()
+		velocity.y = -JUMP_V * 0.85
+		water.splash(global_position.x, -120.0)
+		anim.play("jump", 0.06)
+		move_and_slide()
+		return
+	if treading and _axis() != 0.0 and signf(_axis()) == float(facing):
+		var lip := _find_ledge()
+		if lip != Vector2.INF:
+			_set_crouch(false)
+			_grab(lip)
+			return
+	move_and_slide()
+	var moving := velocity.length() > 25.0 and not treading
+	anim.play("swim" if moving else "tread", 0.2)
+	anim.speed = clampf(velocity.length() / SWIM_MAX, 0.5, 1.6) if moving else 1.0
+	if moving and randf() < delta * 3.0:
+		Fx.bubbles(global_position + Vector2(-facing * 6.0, -8.0).rotated(rig.rotation), 1)
+
+
 func _can_act() -> bool:
 	return state in [S.GROUND, S.AIR, S.SWING]
 
@@ -697,10 +833,14 @@ func _shoot(spread: float) -> void:
 	if spread > 0.0:
 		dir = dir.rotated(randf_range(-spread, spread))
 	# Cast from the shoulder: at point blank the muzzle is already inside the target.
-	var q := PhysicsRayQueryParameters2D.create(rig.point("ua_f"), muzzle + dir * SHOT_RANGE, 1 | 4)
+	var reach := 90.0 if Water.at(get_tree(), muzzle) else SHOT_RANGE
+	var q := PhysicsRayQueryParameters2D.create(rig.point("ua_f"), muzzle + dir * reach, 1 | 4)
 	q.exclude = [get_rid()]
 	var hit := get_world_2d().direct_space_state.intersect_ray(q)
-	var end: Vector2 = hit.position if hit else muzzle + dir * SHOT_RANGE
+	var end: Vector2 = hit.position if hit else muzzle + dir * reach
+	if reach < SHOT_RANGE:
+		for k in 5:
+			Fx.bubbles(muzzle.lerp(end, (k + 0.5) / 5.0), 1)
 	Fx.tracer(muzzle, end)
 	Fx.sparks(muzzle, dir, 3, Color("#fff0a0"))
 	Fx.add_shake(0.18)
@@ -908,6 +1048,8 @@ func respawn() -> void:
 	_reloading = false
 	_quick = false
 	_q_t = -1.0
+	air = AIR_MAX
+	_set_crouch(false)
 	grenades = maxi(grenades, START_GRENADES + GameState.up("bandolier"))
 	grenades_changed.emit(grenades)
 	health_changed.emit(hp)
@@ -958,10 +1100,15 @@ func _pose(delta: float) -> void:
 	# Swinging: the whole body hangs from the gripping hand and follows the rope.
 	var grip := Vector2(0, -GRIP_H)
 	var want := 0.0
+	if state == S.SWIM and anim.clip_name == "swim" and velocity.length() > 10.0:
+		grip = Vector2(0, -10)
+		want = velocity.angle() + PI / 2.0  # head leads, belly down, either way we face
+	elif state == S.SWIM:
+		grip = Vector2(0, -10)
 	if state == S.SWING and is_instance_valid(_anchor):
 		var to := _anchor.global_position - (global_position + grip)
 		want = clampf(to.angle() + PI / 2.0, -1.3, 1.3)
-	rig.rotation = lerp_angle(rig.rotation, want, minf(1.0, delta * 20.0))
+	rig.rotation = lerp_angle(rig.rotation, want, minf(1.0, delta * (6.0 if state == S.SWIM else 20.0)))
 	rig.position = grip - grip.rotated(rig.rotation)
 
 	var aim := aim_point()

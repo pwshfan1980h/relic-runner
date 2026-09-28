@@ -180,7 +180,7 @@ class Pause:
 				_options()
 			3:
 				get_tree().paused = false
-				GameState.start_chapter()
+				GameState.start_chapter(false)
 			4:
 				GameState.title()
 

@@ -269,6 +269,18 @@ static func build() -> void:
 		[0.2, {"ua_b": -60.0, "fa_b": -10.0, "ua_f": 20.0, "fa_f": -25.0}],
 		[0.4, {"ua_b": 8.0, "fa_b": -14.0, "ua_f": 6.0, "fa_f": -12.0}],
 	])
+	# Swimming: arms reach ahead, legs flutter-kick from the hips. The whole body is laid
+	# along the stroke by rotating the rig (see Hero._pose), so this is drawn upright.
+	var swim_a := {"ua_f": -168.0, "fa_f": -4.0, "ua_b": -172.0, "fa_b": -2.0, "torso": 0.0, "head": -30.0,
+			"th_f": -16.0, "sh_f": 22.0, "ft_f": 40.0, "th_b": 14.0, "sh_b": 8.0, "ft_b": 55.0}
+	var swim_b := swim_a.merged({"th_f": 4.0, "sh_f": 12.0, "th_b": -4.0, "sh_b": 20.0, "ua_f": -164.0, "ua_b": -175.0}, true)
+	_add("swim", 0.45, true, 0, _gait([swim_a, swim_b], 0.45))
+	# Treading water: upright, sculling arms, slow bicycling legs.
+	var tread_a := {"ua_f": -50.0, "fa_f": -50.0, "ua_b": -20.0, "fa_b": -60.0, "torso": 6.0, "head": -4.0,
+			"th_f": -30.0, "sh_f": 50.0, "ft_f": 20.0, "th_b": 10.0, "sh_b": 30.0, "ft_b": 30.0}
+	var tread_b := tread_a.merged({"ua_f": -25.0, "fa_f": -70.0, "ua_b": -45.0, "fa_b": -40.0, "th_f": 0.0, "sh_f": 25.0,
+			"th_b": -25.0, "sh_b": 55.0}, true)
+	_add("tread", 1.1, true, 0, _gait([tread_a, tread_b], 1.1))
 	_add("whip_pull", 0.35, false, 0, [
 		[0.0, {"ua_b": -60.0, "fa_b": -10.0}],
 		[0.12, {"ua_b": 45.0, "fa_b": -80.0}],

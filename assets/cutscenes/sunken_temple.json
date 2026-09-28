@@ -1,0 +1,133 @@
+{
+ "chapter": "sunken_temple",
+ "title": "The Drowned Temple",
+ "shots": [
+  {
+   "biome": "jungle",
+   "hour": 10.8,
+   "setting": "temple_steps",
+   "props": [
+    "ruins"
+   ],
+   "actors": [
+    {
+     "id": "rook",
+     "x": 160,
+     "facing": 1,
+     "clip": "idle"
+    },
+    {
+     "id": "itzel",
+     "x": 300,
+     "facing": -1,
+     "clip": "idle"
+    }
+   ],
+   "steps": [
+    {
+     "action": "say",
+     "actor": "itzel",
+     "text": "The temple drowned three hundred years ago. It is still angry about it.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "say",
+     "actor": "rook",
+     "text": "Any advice?",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "say",
+     "actor": "itzel",
+     "text": "Do not touch anything shiny.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "say",
+     "actor": "rook",
+     "text": "Right.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "say",
+     "actor": "itzel",
+     "text": "You are going to touch something shiny.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "say",
+     "actor": "rook",
+     "text": "Almost certainly.",
+     "x": 0,
+     "seconds": 0
+    }
+   ]
+  },
+  {
+   "biome": "jungle",
+   "hour": 11.0,
+   "setting": "temple_hall",
+   "props": [
+    "lanterns"
+   ],
+   "actors": [
+    {
+     "id": "rook",
+     "x": 60,
+     "facing": 1,
+     "clip": "idle"
+    }
+   ],
+   "steps": [
+    {
+     "action": "walk",
+     "actor": "rook",
+     "text": "",
+     "x": 200,
+     "seconds": 0
+    },
+    {
+     "action": "caption",
+     "actor": "",
+     "text": "(water dripping... and far below, a voice complaining)",
+     "x": 0,
+     "seconds": 3
+    },
+    {
+     "action": "say",
+     "actor": "ortiz",
+     "text": "(echoing up from the dark) ...and your men are standing on my notes!",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "anim",
+     "actor": "rook",
+     "text": "idle_hat",
+     "x": 0,
+     "seconds": 1.0
+    },
+    {
+     "action": "say",
+     "actor": "rook",
+     "text": "That's her. Alive, and furious. Good sign.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "run",
+     "actor": "rook",
+     "text": "",
+     "x": 430,
+     "seconds": 0
+    }
+   ]
+  }
+ ],
+ "_source": "hand-written stand-in (regenerate with tools/gen_cutscenes.py)"
+}

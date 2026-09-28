@@ -590,6 +590,26 @@ def intro_boom():
     return echo(out, 0.35, 0.3, 3)
 
 
+
+# --- Water ----------------------------------------------------------------------
+
+def splash():
+    out = silence(0.9)
+    body = env(bandpass(noise(0.6, 101), 300, 3500), lambda t: min(1, t / 0.01) * math.exp(-t / 0.12))
+    mix(out, body, 0, 0.9)
+    rng = random.Random(102)
+    for i in range(14):
+        at = 0.05 + rng.random() * 0.5
+        f = rng.uniform(700, 2200)
+        mix(out, env(osc(lambda t, f=f: f + 3000 * t, 0.05), decay(0.012)), at, 0.12)
+    return out
+
+
+def gasp():
+    """A breath drawn in hard after being under."""
+    return env(bandpass(noise(0.5, 103), 500, 2600), lambda t: math.sin(min(1.0, t / 0.45) * math.pi) ** 1.5 * (1 - t))
+
+
 SFX = [
     gunshot, ricochet, empty_click, reload_open, reload_shell, reload_spin,
     whip_throw, whip_crack, whip_latch,
@@ -599,7 +619,7 @@ SFX = [
     stone_grind, slam, glyph_hit, stone_crumble, spike_hit, crumble_crack, gate_rumble, plate_click,
     gate_tick, checkpoint, squelch, splat, whoosh_punch, whoosh_kick, punch_hit, kick_hit,
     coin_drop, item_drop, coin_pickup, item_pickup,
-    explosion, grenade_pin, grenade_bounce, throw_whoosh, intro_boom,
+    explosion, grenade_pin, grenade_bounce, throw_whoosh, intro_boom, splash, gasp,
 ]
 
 

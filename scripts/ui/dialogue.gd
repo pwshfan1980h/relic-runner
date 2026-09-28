@@ -23,10 +23,12 @@ var _typed := 0.0
 var _t := 0.0
 var _was_paused := false
 var auto := false  # test bot: lines advance on their own
+var at_top := false  # cutscenes: dock the box at the top, clear of the actors
 
 
-static func play(tree: SceneTree, lines: Array, done := Callable()) -> DialogueBox:
+static func play(tree: SceneTree, lines: Array, done := Callable(), at_top := false) -> DialogueBox:
 	var d := DialogueBox.new()
+	d.at_top = at_top
 	d.auto = OS.get_cmdline_user_args().has("--bot")
 	tree.current_scene.add_child(d)
 	d._start(lines, done)
@@ -49,7 +51,7 @@ func _ready() -> void:
 		bar.size = Vector2(480, 18)
 		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(bar)
-	_box = UI.panel(self, Rect2(24, 186, 432, 62))
+	_box = UI.panel(self, Rect2(24, 22 if at_top else 186, 432, 62))
 	# The portrait renders in its own little viewport: the rig's layered (z-indexed) parts
 	# would escape a plain clip rect.
 	_frame = ColorRect.new()

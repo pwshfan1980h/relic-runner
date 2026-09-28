@@ -1,0 +1,163 @@
+{
+ "chapter": "rattler_mesa",
+ "title": "Rattler Mesa",
+ "shots": [
+  {
+   "biome": "canyon",
+   "hour": 17.2,
+   "setting": "campfire",
+   "props": [
+    "campfire",
+    "mules",
+    "tents"
+   ],
+   "actors": [
+    {
+     "id": "rook",
+     "x": 160,
+     "facing": 1,
+     "clip": "idle"
+    },
+    {
+     "id": "tomas",
+     "x": 300,
+     "facing": -1,
+     "clip": "idle"
+    }
+   ],
+   "steps": [
+    {
+     "action": "say",
+     "actor": "tomas",
+     "text": "The mesa. Six hundred feet of rock, rattlesnakes and regret. The professor went up it with a shovel. A shovel!",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "say",
+     "actor": "rook",
+     "text": "She's hard to stop.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "walk",
+     "actor": "rook",
+     "text": "",
+     "x": 370,
+     "seconds": 0
+    },
+    {
+     "action": "sfx",
+     "actor": "",
+     "text": "hit_wood",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "anim",
+     "actor": "rook",
+     "text": "hurt",
+     "x": 0,
+     "seconds": 0.5
+    },
+    {
+     "action": "say",
+     "actor": "rook",
+     "text": "Your mule just bit me.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "say",
+     "actor": "tomas",
+     "text": "Dolores likes you. That was a small bite. When she hates you, you will know.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "walk",
+     "actor": "rook",
+     "text": "",
+     "x": 200,
+     "seconds": 0
+    }
+   ]
+  },
+  {
+   "biome": "canyon",
+   "hour": 17.6,
+   "setting": "mesa_foot",
+   "props": [
+    "dead_tree"
+   ],
+   "actors": [
+    {
+     "id": "rook",
+     "x": 80,
+     "facing": 1,
+     "clip": "idle"
+    }
+   ],
+   "steps": [
+    {
+     "action": "walk",
+     "actor": "rook",
+     "text": "",
+     "x": 240,
+     "seconds": 0
+    },
+    {
+     "action": "face",
+     "actor": "rook",
+     "text": "",
+     "x": 440,
+     "seconds": 0
+    },
+    {
+     "action": "pan",
+     "actor": "",
+     "text": "",
+     "x": 60,
+     "seconds": 2.5
+    },
+    {
+     "action": "say",
+     "actor": "rook",
+     "text": "Six hundred feet.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "caption",
+     "actor": "",
+     "text": "(a dry rattle, somewhere very close)",
+     "x": 0,
+     "seconds": 2.5
+    },
+    {
+     "action": "sfx",
+     "actor": "",
+     "text": "snake_hiss",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "anim",
+     "actor": "rook",
+     "text": "crouch",
+     "x": 0,
+     "seconds": 1.0
+    },
+    {
+     "action": "say",
+     "actor": "rook",
+     "text": "Six hundred feet and a snake. Lovely. At least the sunset's nice.",
+     "x": 0,
+     "seconds": 0
+    }
+   ]
+  }
+ ],
+ "_source": "hand-written stand-in (regenerate with tools/gen_cutscenes.py)"
+}

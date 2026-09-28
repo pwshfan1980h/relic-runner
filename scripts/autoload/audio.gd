@@ -34,6 +34,12 @@ func _ready() -> void:
 	_ambience.bus = "SFX"
 	add_child(_ambience)
 	set_volumes(1.0, 1.0)
+	# Underwater muffle: a low-pass on music and effects, switched on by the level.
+	for bus in ["Music", "SFX"]:
+		var lp := AudioEffectLowPassFilter.new()
+		lp.cutoff_hz = 700.0
+		AudioServer.add_bus_effect(AudioServer.get_bus_index(bus), lp)
+	underwater(false)
 
 
 func stream(sound: String) -> AudioStream:
@@ -131,6 +137,18 @@ func ambience(track: String, volume_db := -14.0) -> void:
 		_ambience.stream = stream(track)
 		_ambience.volume_db = volume_db
 		_ambience.play()
+
+
+var _under := true
+
+
+func underwater(on: bool) -> void:
+	if on == _under:
+		return
+	_under = on
+	for bus in ["Music", "SFX"]:
+		var i := AudioServer.get_bus_index(bus)
+		AudioServer.set_bus_effect_enabled(i, AudioServer.get_bus_effect_count(i) - 1, on)
 
 
 func set_volumes(music_vol: float, sfx_vol: float) -> void:

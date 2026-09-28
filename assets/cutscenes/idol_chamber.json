@@ -1,0 +1,161 @@
+{
+ "chapter": "idol_chamber",
+ "title": "The Idol Chamber",
+ "shots": [
+  {
+   "biome": "jungle",
+   "hour": 16.8,
+   "setting": "temple_hall",
+   "props": [
+    "idol",
+    "lanterns"
+   ],
+   "actors": [
+    {
+     "id": "crane",
+     "x": 170,
+     "facing": 1,
+     "clip": "idle"
+    },
+    {
+     "id": "ortiz",
+     "x": 330,
+     "facing": -1,
+     "clip": "idle"
+    },
+    {
+     "id": "bandit",
+     "x": 400,
+     "facing": -1,
+     "clip": "idle"
+    }
+   ],
+   "steps": [
+    {
+     "action": "say",
+     "actor": "crane",
+     "text": "Do you know what this is, Professor?",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "say",
+     "actor": "ortiz",
+     "text": "A crime scene.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "say",
+     "actor": "crane",
+     "text": "A retirement plan. The Key, please.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "say",
+     "actor": "ortiz",
+     "text": "You'll have to take it. I'm not handing you anything but a bibliography.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "walk",
+     "actor": "crane",
+     "text": "",
+     "x": 230,
+     "seconds": 0
+    },
+    {
+     "action": "sfx",
+     "actor": "",
+     "text": "stone_grind",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "shake",
+     "actor": "",
+     "text": "",
+     "x": 0,
+     "seconds": 0.6
+    },
+    {
+     "action": "caption",
+     "actor": "",
+     "text": "(deep in the walls, stone begins to move)",
+     "x": 0,
+     "seconds": 3
+    },
+    {
+     "action": "say",
+     "actor": "crane",
+     "text": "Ah. Right on schedule. And I do believe we're about to have company.",
+     "x": 0,
+     "seconds": 0
+    }
+   ]
+  },
+  {
+   "biome": "jungle",
+   "hour": 16.9,
+   "setting": "temple_hall",
+   "props": [
+    "lanterns"
+   ],
+   "actors": [
+    {
+     "id": "rook",
+     "x": 60,
+     "facing": 1,
+     "clip": "idle"
+    }
+   ],
+   "steps": [
+    {
+     "action": "run",
+     "actor": "rook",
+     "text": "",
+     "x": 240,
+     "seconds": 0
+    },
+    {
+     "action": "anim",
+     "actor": "rook",
+     "text": "skid",
+     "x": 0,
+     "seconds": 0.5
+    },
+    {
+     "action": "face",
+     "actor": "rook",
+     "x": 440,
+     "text": "",
+     "seconds": 0
+    },
+    {
+     "action": "anim",
+     "actor": "rook",
+     "text": "idle_hat",
+     "x": 0,
+     "seconds": 1.0
+    },
+    {
+     "action": "say",
+     "actor": "rook",
+     "text": "Company. That's me. I'm the company.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "sfx",
+     "actor": "",
+     "text": "whip_crack",
+     "x": 0,
+     "seconds": 0
+    }
+   ]
+  }
+ ],
+ "_source": "hand-written stand-in (regenerate with tools/gen_cutscenes.py)"
+}

@@ -49,6 +49,7 @@ func build(id: String) -> void:
 	sky = SkyDome.new(map["biome"], hour)
 	add_child(sky)
 	_tiles(map["biome"])
+	_water()
 	var slopes := Slopes.new()
 	add_child(slopes)
 	slopes.build(rows, map["biome"])
@@ -163,6 +164,7 @@ func _tiles(biome: String) -> void:
 				tiles.set_cell(Vector2i(x, y), 0, Vector2i(_mask(x, y), v))
 			elif _in_dark(Vector2(x * T + 8, y * T + 8)):
 				back.set_cell(Vector2i(x, y), 0, Vector2i(15, v))
+
 
 
 func _entities() -> void:
@@ -284,6 +286,12 @@ func _entities() -> void:
 					node = fr
 				"g":
 					node = StoryProps.Supply.new()
+				"p":
+					node = Piranha.new()
+					node.position = Vector2(base.x, y * T + 12)
+				"A":
+					node = Caiman.new()
+					node.position = Vector2(base.x, y * T + 12)
 				"s":
 					node = Scorpion.new()
 				"r":
@@ -329,6 +337,53 @@ func _chain_len(x: int, y: int) -> float:
 	return (y + 7) * T
 
 
+## Water: "~" full cells, "," half-full (surface mid-cell: knee-deep over a one-tile bed).
+## Predators placed in water (p, A) count as water too.
+func _wet(x: int, y: int) -> bool:
+	return cell(x, y) in ["~", ",", "p", "A"]
+
+
+## Water cells become Water bodies: each connected region is one body with one surface
+## (the highest open top in it). Per column: top, bottom, and whether it's open to the air.
+func _water() -> void:
+	var seen := {}
+	for y in h:
+		for x in w:
+			if not _wet(x, y) or seen.has(Vector2i(x, y)):
+				continue
+			var cells: Array[Vector2i] = []
+			var stack: Array[Vector2i] = [Vector2i(x, y)]
+			seen[Vector2i(x, y)] = true
+			while not stack.is_empty():
+				var c: Vector2i = stack.pop_back()
+				cells.append(c)
+				for d in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+					var nc: Vector2i = c + d
+					if not seen.has(nc) and _wet(nc.x, nc.y):
+						seen[nc] = true
+						stack.append(nc)
+			var cols := {}
+			for c in cells:
+				var top := float(c.y * T) + (T / 2.0 if cell(c.x, c.y) == "," else 0.0)
+				var bot := float((c.y + 1) * T)
+				var open := not _wet(c.x, c.y - 1) and not solid(c.x, c.y - 1)
+				if cols.has(c.x):
+					var e: Array = cols[c.x]
+					if top < e[0]:
+						e[0] = top
+						e[2] = open
+					e[1] = maxf(e[1], bot)
+				else:
+					cols[c.x] = [top, bot, open]
+			var surface := INF
+			for cx in cols:
+				if cols[cx][2]:
+					surface = minf(surface, cols[cx][0])
+			if surface == INF:
+				surface = cols.values().map(func(e): return e[0]).min()
+			add_child(Water.new(surface, cols))
+
+
 func _in_dark(p: Vector2) -> bool:
 	for r in _dark_px:
 		if r.has_point(p):
@@ -346,6 +401,7 @@ func _physics_process(delta: float) -> void:
 	cam.global_position = cam.global_position.lerp(target, 1.0 - exp(-7.0 * delta))
 	cam.offset = Fx.offset()
 	sky.cam = cam.get_screen_center_position()
+	Audio.underwater(Water.at(get_tree(), cam.get_screen_center_position() + Vector2(0, 24)) != null and hero.state == Hero.S.SWIM)
 	# Lighting: the sky sets the ambient outdoors; caves drop it low so torches, lanterns
 	# and muzzle flashes carry the scene. The hero's eyes adjust a little (a faint glow).
 	var inside := _in_dark(hero.global_position + Vector2(0, -16))

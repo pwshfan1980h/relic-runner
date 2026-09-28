@@ -34,12 +34,15 @@ satchel of grenades. The story campaign is in [STORY.md](STORY.md); ideas queued
 | E | Punch (press again for a jab/cross combo). Next to a friendly character: talk |
 | F | Front kick (launches enemies, fells dead trees, cracks walls); jump kick in the air |
 | Tab / I | Satchel (loot) |
+| In deep water | A/D/W/S swim (S dives, otherwise you float up to tread water), Shift swims faster, Space kicks out of the water at the surface, pushing into a bank grabs it |
 | Esc / P | Pause: resume, how to play, options, restart chapter, quit to title |
 
 ## Flow
 Boot (web: click to begin) → **intro film** (skippable) → **title screen** (Continue / New Game /
 How to Play / Options / Credits) → chapter card → level → end-of-chapter summary → **camp** with Tomás
-(sell treasure, buy upgrades, read journal pages) → next chapter … → epilogue → title. No level select:
+(sell treasure, buy upgrades, read journal pages) → the next chapter's **intro cutscene** (in-engine,
+scripted in `assets/cutscenes/*.json`, written by Claude Sonnet 5.5 via `tools/gen_cutscenes.py`;
+ESC skips; restarting a chapter skips it) → … → epilogue → title. No level select:
 test rooms are reachable with `-- --map <id>`.
 
 ## Look
@@ -94,6 +97,8 @@ the dead. They hurt the hero too.
 | Relic fragment | `*` | Three per chapter, hidden high, under loose stones, or deep in a swing's arc. |
 | NPC / story trigger | `N` / `!` | Talk with E; triggers play once as you pass. |
 | Grenade crate | `g` | +2 grenades, once. |
+| Water | `~` `,` | Knee-deep (`,`) slows you a little; waist-deep (`~`) stops running and cuts the jump; chest-deep (`,~`) is a slog, and you haul yourself out by grabbing the bank; deeper, you swim. |
+| Piranha / caiman | `p` / `A` | Water predators: piranhas dart in and nip; the caiman floats eyes-up and lunges at swimmers and at anyone at the water's edge. Both suffocate if knocked onto land. |
 | Anchors, spikes, crumbling floors, gates and plates, checkpoints, torches, lanterns, signs | as before | See the legend in `scripts/world/maps.gd`. |
 
 ## Loot and progression

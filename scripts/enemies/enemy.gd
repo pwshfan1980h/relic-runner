@@ -17,6 +17,10 @@ var t := 0.0
 var _flash := 0.0
 var _dead_t := 0.0
 var _home := Vector2.ZERO
+## Water: land enemies wade and can drown; aquatic ones swim and suffocate on land.
+var aquatic := false
+var water: Water
+var _drown := 0.0
 
 
 func _ready() -> void:
@@ -51,8 +55,36 @@ func _think(_delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	t += delta
 	_flash = maxf(0.0, _flash - delta)
-	if not is_on_floor():
+	water = Water.at(get_tree(), global_position + Vector2(0, -size.y * 0.5))
+	if water and (aquatic or dead):
+		# Swimmers steer themselves; the dead float up and bob.
+		if dead:
+			var surf := water.surface_y(global_position.x)
+			velocity.y = move_toward(velocity.y, clampf((surf + 2.0 - global_position.y) * 3.0, -40.0, 40.0), 200.0 * delta)
+		velocity *= exp(-1.5 * delta)
+	elif water:
+		# Wading, or sinking in over our heads.
+		velocity.y = minf(70.0, velocity.y + GRAVITY * 0.25 * delta)
+		velocity.x *= exp(-3.0 * delta)
+		if Water.at(get_tree(), global_position + Vector2(0, -size.y - 1.0)) and not dead:
+			_drown += delta
+			if randf() < delta * 4.0:
+				Fx.bubbles(global_position + Vector2(0, -size.y), 1)
+			if _drown > 4.0:
+				die("drown", Vector2.ZERO)
+		else:
+			_drown = 0.0
+	elif not is_on_floor():
 		velocity.y = minf(500.0, velocity.y + GRAVITY * delta)
+	if aquatic and not water and not dead:
+		# Out of the water: flop about, suffocating.
+		_drown += delta
+		stun = maxf(stun, 0.1)
+		if is_on_floor() and randf() < delta * 3.0:
+			velocity = Vector2(randf_range(-50, 50), -100)
+			facing = -facing
+		if _drown > 5.0:
+			die("drown", Vector2.ZERO)
 	if dead:
 		# Corpses stay a while (the gore is the point), then fade.
 		_dead_t += delta

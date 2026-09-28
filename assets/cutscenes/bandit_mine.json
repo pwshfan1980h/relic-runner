@@ -1,0 +1,149 @@
+{
+ "chapter": "bandit_mine",
+ "title": "The Silver Mine",
+ "shots": [
+  {
+   "biome": "canyon",
+   "hour": 21.0,
+   "setting": "mine_mouth",
+   "props": [
+    "lanterns",
+    "mine_cart",
+    "crates"
+   ],
+   "actors": [
+    {
+     "id": "bandit",
+     "x": 150,
+     "facing": 1,
+     "clip": "idle"
+    },
+    {
+     "id": "brute",
+     "x": 250,
+     "facing": -1,
+     "clip": "idle"
+    },
+    {
+     "id": "bandit2",
+     "x": 350,
+     "facing": -1,
+     "clip": "idle"
+    }
+   ],
+   "steps": [
+    {
+     "action": "caption",
+     "actor": "",
+     "text": "The Esperanza silver mine. Closed since 1912. Open tonight.",
+     "x": 0,
+     "seconds": 3
+    },
+    {
+     "action": "say",
+     "actor": "bandit",
+     "text": "Why do we always dig at night?",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "say",
+     "actor": "brute",
+     "text": "Boss says it's cooler.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "say",
+     "actor": "bandit2",
+     "text": "Boss is in a hotel in Tucson.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "wait",
+     "actor": "",
+     "text": "",
+     "x": 0,
+     "seconds": 1.0
+    },
+    {
+     "action": "say",
+     "actor": "brute",
+     "text": "...Boss is very smart.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "sfx",
+     "actor": "",
+     "text": "stone_grind",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "caption",
+     "actor": "",
+     "text": "(far below: pickaxes, and a kid yelling)",
+     "x": 0,
+     "seconds": 2.5
+    }
+   ]
+  },
+  {
+   "biome": "canyon",
+   "hour": 21.1,
+   "setting": "mine_mouth",
+   "props": [
+    "crates",
+    "lanterns"
+   ],
+   "actors": [
+    {
+     "id": "rook",
+     "x": 70,
+     "facing": 1,
+     "clip": "crouch"
+    }
+   ],
+   "steps": [
+    {
+     "action": "anim",
+     "actor": "rook",
+     "text": "crouch",
+     "x": 0,
+     "seconds": 1.5
+    },
+    {
+     "action": "say",
+     "actor": "rook",
+     "text": "Three rifles, one very large man, and somewhere down there a gold key shaped like the sun.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "say",
+     "actor": "rook",
+     "text": "And a kid who yells. That's new.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "walk",
+     "actor": "rook",
+     "text": "",
+     "x": 300,
+     "seconds": 0
+    },
+    {
+     "action": "sfx",
+     "actor": "",
+     "text": "whip_crack",
+     "x": 0,
+     "seconds": 0
+    }
+   ]
+  }
+ ],
+ "_source": "hand-written stand-in (regenerate with tools/gen_cutscenes.py)"
+}

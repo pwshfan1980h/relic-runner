@@ -1,0 +1,148 @@
+{
+ "chapter": "canopy_run",
+ "title": "Canopy Run",
+ "shots": [
+  {
+   "biome": "jungle",
+   "hour": 5.8,
+   "setting": "jungle_river",
+   "props": [
+    "boat",
+    "mules"
+   ],
+   "actors": [
+    {
+     "id": "rook",
+     "x": 180,
+     "facing": 1,
+     "clip": "idle"
+    },
+    {
+     "id": "tomas",
+     "x": 290,
+     "facing": -1,
+     "clip": "idle"
+    }
+   ],
+   "steps": [
+    {
+     "action": "caption",
+     "actor": "",
+     "text": "Six days south by tramp steamer, two by mule.",
+     "x": 0,
+     "seconds": 2.5
+    },
+    {
+     "action": "say",
+     "actor": "tomas",
+     "text": "Dolores has not spoken to me since the steamer.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "say",
+     "actor": "rook",
+     "text": "Dolores is a mule. Dolores doesn't speak.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "say",
+     "actor": "tomas",
+     "text": "Exactly. It is very loud.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "sfx",
+     "actor": "",
+     "text": "jaguar_growl",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "shake",
+     "actor": "",
+     "text": "",
+     "x": 0,
+     "seconds": 0.25
+    },
+    {
+     "action": "say",
+     "actor": "tomas",
+     "text": "That was not Dolores.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "say",
+     "actor": "tomas",
+     "text": "I will wait here. With the boat. And the gold. Mostly the boat.",
+     "x": 0,
+     "seconds": 0
+    }
+   ]
+  },
+  {
+   "biome": "jungle",
+   "hour": 6.1,
+   "setting": "temple_steps",
+   "props": [
+    "ruins"
+   ],
+   "actors": [
+    {
+     "id": "rook",
+     "x": 90,
+     "facing": 1,
+     "clip": "idle"
+    }
+   ],
+   "steps": [
+    {
+     "action": "walk",
+     "actor": "rook",
+     "text": "",
+     "x": 230,
+     "seconds": 0
+    },
+    {
+     "action": "pan",
+     "actor": "",
+     "text": "",
+     "x": 80,
+     "seconds": 3
+    },
+    {
+     "action": "caption",
+     "actor": "",
+     "text": "(something large moves in the leaves)",
+     "x": 0,
+     "seconds": 2.5
+    },
+    {
+     "action": "face",
+     "actor": "rook",
+     "text": "",
+     "x": 40,
+     "seconds": 0
+    },
+    {
+     "action": "anim",
+     "actor": "rook",
+     "text": "idle_hat",
+     "x": 0,
+     "seconds": 1.2
+    },
+    {
+     "action": "say",
+     "actor": "rook",
+     "text": "Nice kitty. Nice, enormous, hungry kitty.",
+     "x": 0,
+     "seconds": 0
+    }
+   ]
+  }
+ ],
+ "_source": "hand-written stand-in (regenerate with tools/gen_cutscenes.py)"
+}

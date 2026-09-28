@@ -8,6 +8,7 @@ const MAIN := "res://scenes/main.tscn"
 const TITLE := "res://scenes/menu.tscn"
 const CAMP := "res://scenes/camp.tscn"
 const INTRO := "res://scenes/intro.tscn"
+const CUTSCENE := "res://scenes/cutscene.tscn"
 const SAVE := "user://save.cfg"
 
 ## Upgrades Tomás sells. costs: one entry per level.
@@ -42,6 +43,8 @@ func _ready() -> void:
 	_load_settings()
 	# Screenshots for review: -- --snap <dir> [--every s] [--count n] (needs a window).
 	var args := OS.get_cmdline_user_args()
+	if args.has("--chapter"):
+		chapter = int(args[args.find("--chapter") + 1])  # testing: start at chapter N (0-based)
 	var i := args.find("--snap")
 	if i >= 0:
 		var every := float(args[args.find("--every") + 1]) if args.has("--every") else 1.0
@@ -165,10 +168,14 @@ func continue_game() -> void:
 	start_chapter()
 
 
-func start_chapter() -> void:
+## Starts the current chapter, with its intro cutscene unless `cutscene` is false
+## (restarting from the pause menu) or there isn't one.
+func start_chapter(cutscene := true) -> void:
 	run = {"t0": Time.get_ticks_msec(), "kills": 0, "deaths": 0, "gold": 0, "fragments": 0}
 	save()
-	get_tree().change_scene_to_file.call_deferred(MAIN)
+	var map: String = Story.CHAPTERS[chapter]["map"]
+	var scene := CUTSCENE if cutscene and FileAccess.file_exists("res://assets/cutscenes/%s.json" % map) else MAIN
+	get_tree().change_scene_to_file.call_deferred(scene)
 
 
 ## The level's exit was reached: on to camp (or the ending).

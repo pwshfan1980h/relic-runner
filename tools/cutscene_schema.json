@@ -1,0 +1,55 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["chapter", "title", "shots"],
+  "properties": {
+    "chapter": {"type": "string", "enum": ["dry_gulch", "rattler_mesa", "bandit_mine", "canopy_run", "sunken_temple", "idol_chamber"]},
+    "title": {"type": "string"},
+    "shots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["biome", "hour", "setting", "props", "actors", "steps"],
+        "properties": {
+          "biome": {"type": "string", "enum": ["canyon", "jungle"]},
+          "hour": {"type": "number"},
+          "setting": {"type": "string", "enum": ["desert_road", "mesa_foot", "mesa_top", "mine_mouth", "mine_tunnel", "campfire", "jungle_river", "temple_steps", "temple_hall"]},
+          "props": {
+            "type": "array",
+            "items": {"type": "string", "enum": ["campfire", "mules", "signpost", "lanterns", "tents", "crates", "ruins", "idol", "boat", "dead_tree", "watchtower", "mine_cart"]}
+          },
+          "actors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "x", "facing", "clip"],
+              "properties": {
+                "id": {"type": "string", "enum": ["rook", "hattie", "tomas", "nico", "itzel", "ortiz", "crane", "bandit", "bandit2", "brute"]},
+                "x": {"type": "number"},
+                "facing": {"type": "integer", "enum": [-1, 1]},
+                "clip": {"type": "string", "enum": ["idle", "idle_hat", "crouch", "hang", "fall", "tread"]}
+              }
+            }
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["action", "actor", "text", "x", "seconds"],
+              "properties": {
+                "action": {"type": "string", "enum": ["wait", "say", "caption", "walk", "run", "face", "anim", "sfx", "shake", "pan"]},
+                "actor": {"type": "string"},
+                "text": {"type": "string"},
+                "x": {"type": "number"},
+                "seconds": {"type": "number"}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

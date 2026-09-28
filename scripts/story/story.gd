@@ -43,6 +43,10 @@ const CAST := {
 		HeroRig.JACKET: Color("#e8e4dc"), HeroRig.JACKET_D: Color("#bcb8b0"), HeroRig.JACKET_L: Color("#f8f6f0"),
 		HeroRig.SHIRT: Color("#2a2a30"), HeroRig.TROUSER: Color("#d8d4cc"), HeroRig.TROUSER_D: Color("#aca8a0"),
 		HeroRig.SKIN: Color("#e0b090"), HeroRig.SKIN_D: Color("#b08060")}},
+	# Crane's gang, for cutscenes (dressed by UI.cast_rig from their enemy palettes).
+	"bandit": {"name": "BANDIT", "color": Color("#c86050")},
+	"bandit2": {"name": "OTHER BANDIT", "color": Color("#c88050")},
+	"brute": {"name": "THE BRUTE", "color": Color("#e04040")},
 	"": {"name": "", "color": Color("#c8b890")},
 }
 
@@ -65,97 +69,109 @@ const CHAPTERS := [
 const TALKS := {
 	# --- Chapter I ---
 	"hattie_hello": [
-		["hattie", "Well, if it ain't a greenhorn in a good hat. You Maribel's runner? She said you'd come."],
-		["rook", "She's here?"],
-		["hattie", "Was. Went up the mesa with a map, a shovel, and a look on her face like she'd seen a ghost. Crane's boys went up the day after."],
-		["hattie", "Mind the gulch. Run, then jump: a running jump clears what a standing one won't. Hold SHIFT to run."],
+		["hattie", "Well, if it ain't a greenhorn in a good hat. You Maribel's runner? She said you'd come. Said you'd be late, too."],
+		["rook", "The letter took three weeks."],
+		["hattie", "Letter didn't take three weeks. The postman did. He's my cousin. Anyhow: she went up the mesa with a map, a shovel, and a look like she'd seen a ghost. Crane's boys went up the day after."],
+		["hattie", "Mind the gulch. Hold SHIFT to run, then jump: a running jump clears what a standing one won't. I'd show you, but my knees retired in '09."],
 	],
 	"hattie_after": [
-		["hattie", "Still here? The trail's east. And take the long way round the snakes."],
+		["hattie", "Still here? Trail's east. The snakes are also east. Everything's east, out here, 'cept the good whiskey."],
 	],
 	"hattie_rope": [
-		["hattie", "See that iron ring? Point at it and press R. The whip'll bite, and you swing. A and D to pump, SPACE to let go."],
+		["hattie", "See that iron ring? Point at it and press R. The whip bites, you swing. A and D pump, SPACE lets go."],
+		["hattie", "Let go at the top, not the bottom. Fella last spring let go at the bottom. We call that spot Fella's Bottom now."],
 	],
 	"gulch_tree": [
-		["rook", "That dead tree's rotten at the root. One good kick (F) and it'd make a bridge."],
+		["rook", "That dead tree's rotten at the root. One good kick (F) and it'd make a bridge. Two good kicks and it'd make a mess."],
 	],
 	"gulch_crane_sign": [
-		["", "A fresh bootprint in the dust, and a cigar end: expensive, Cuban. Crane doesn't smoke anything cheaper."],
+		["", "A fresh bootprint in the dust, and the end of a cigar: Cuban, hand-rolled, barely smoked."],
+		["rook", "Crane. Only a man that rich throws away a cigar that good."],
 	],
 	"tomas_camp1": [
-		["tomas", "Rook! Tomás Aguilar, at your service. The professor hired me and my mules. Then she vanished, so now I suppose I work for you."],
-		["tomas", "Gold buys gear. I trade in anything that shines. Come find me at camp between the hard days."],
+		["tomas", "Rook! Tomás Aguilar, at your service. The professor hired me and my mules. Then she vanished, so now I suppose I work for you. The rate has gone up."],
+		["tomas", "This is Dolores. Dolores bites. Not personal: she bites everyone. Except the professor. Dolores has taste."],
+		["tomas", "Gold buys gear. I trade in anything that shines. Find me at camp between the hard days."],
 	],
 	# --- Chapter II ---
 	"mesa_start": [
-		["rook", "The watchtower's at the top. Jump at a ledge to grab it, then W to climb."],
+		["rook", "The watchtower's at the top. Jump at a ledge to grab it, then W to climb. Don't look down. Don't look at the rattlers either. Just... look up."],
 	],
 	"mesa_journal": [
-		["", "A page from Ortiz's journal, pinned under a stone: \"The Sun Key sleeps in the Esperanza mine. The Idol will not wake without it. Crane must not have it.\""],
+		["", "A page from Ortiz's journal, weighted under a stone: \"The Sun Key sleeps in the Esperanza mine. The Idol will not wake without it. Crane must not have it. Also: Rook, if you're reading this, you're late.\""],
+		["rook", "Everybody's a critic."],
 	],
 	"mesa_top": [
-		["rook", "Lights down in the valley. Lanterns, at the old mine. Crane's already digging."],
+		["rook", "Lanterns in the valley. The old Esperanza mine. Crane's already digging."],
+		["rook", "Of course he is. Why would anyone dig in the daytime, like a normal criminal."],
 	],
 	# --- Chapter III ---
 	"mine_enter": [
-		["rook", "Rifles glint before they fire. Hold C to duck under the shot, or hold RIGHT MOUSE to aim and shoot first."],
+		["rook", "Rifles glint before they fire. Hold C to duck under the shot, or hold RIGHT MOUSE to aim and shoot first. Shooting first is traditional."],
 	],
 	"nico_help": [
-		["nico", "Hey! Hey, over here! They tied me up when I wouldn't dig. You gonna shoot me too?"],
+		["nico", "Hey! Over here! They tied me up 'cause I wouldn't dig. You gonna shoot me too?"],
 		["rook", "Not today. What's your name?"],
-		["nico", "Nico. My pa worked this mine before Crane came. There's a key they want: gold, shaped like the sun. They found it an hour ago."],
-		["nico", "Take these, they dropped 'em. Pa says never throw one uphill. Tap Q to lob it, or hold Q to aim."],
+		["nico", "Nico. My pa worked this mine before Crane came. They've been digging for some gold key shaped like the sun. They found it an hour ago. The boss put it in his strongbox."],
+		["nico", "Take these, they dropped 'em. Pa says never throw one uphill. Tap Q to lob it, hold Q to aim. And don't blow up the good tunnel. I live in the good tunnel."],
 	],
 	"nico_after": [
-		["nico", "Go on, get the key back! I'll find my own way out, I know every tunnel."],
+		["nico", "Go on, get the key! I'll find my own way out. I know every tunnel. Also I know where they keep the cookies."],
 	],
 	"mine_wall": [
-		["rook", "The rock's cracked here. Kicks might do it. A grenade would do it faster."],
+		["rook", "The rock's cracked here. A few kicks would do it. A grenade would do it faster, and louder, and with more of the ceiling."],
 	],
 	"mine_key": [
-		["crane", "(from the dark) Keep your little key, Calloway. I have the professor, and she knows the way. See you in the jungle."],
+		["", "In the paymaster's strongbox, wrapped in a silk handkerchief: a gold key, shaped like the sun."],
+		["crane", "(a voice from the dark) Oh, keep the trinket, Calloway. It's a copy. The real Key went south on Tuesday."],
+		["crane", "So did the professor. She's a delightful travelling companion. Complains about everything. See you in the jungle."],
+		["rook", "...I hate that man's voice."],
 	],
 	# --- Chapter IV ---
 	"itzel_meet": [
-		["itzel", "Stop. You are the one Ortiz spoke of. I am Itzel. My family has watched this temple for longer than yours has had a name."],
-		["rook", "Then you know what's inside."],
-		["itzel", "The Guardian. Stone that walks. Bullets are nothing to it. Only when the glyph on its chest burns can it be hurt."],
-		["itzel", "The branches over the gorge will hold your whip. Swing, and let go at the top of the arc."],
+		["itzel", "Stop. You are the one Ortiz spoke of. Loud. Late. A hat that is doing a lot of work."],
+		["rook", "She talks about me?"],
+		["itzel", "Constantly. With exasperation. I am Itzel. My family has watched this temple for longer than yours has had a name."],
+		["itzel", "Inside is the Guardian: stone that walks. Bullets are nothing to it. Only when the glyph on its chest burns can it be hurt."],
+		["itzel", "The branches over the gorge will hold your whip. Swing, and let go at the top of the arc. If you fall, the jaguars will be very grateful."],
 	],
 	"itzel_after": [
-		["itzel", "The temple is east, past the gorge. Be quick. The jaguars hunt at dawn."],
+		["itzel", "The temple is east, past the gorge. I would come, but someone has to explain to your mule why she was left behind."],
 	],
 	"canopy_tree": [
-		["rook", "Another rotten trunk. Kick it over the gap."],
+		["rook", "Another rotten trunk. Kick it over the gap. This whole jungle is held together by trees that are one bad day from giving up."],
 	],
 	# --- Chapter V ---
 	"temple_enter": [
-		["rook", "Spikes in the floor, plates in the stones. Somebody really didn't want visitors."],
+		["rook", "Spikes in the floor, plates in the stones, the whole place half underwater. Somebody really didn't want visitors."],
+		["rook", "I respect that. I also ignore it."],
 	],
 	"ortiz_camp": [
-		["", "Ortiz's abandoned camp. A cold fire, a torn satchel, and a line scratched on the wall: \"He's taking me to the Idol. Don't let him use the Key.\""],
+		["", "Ortiz's abandoned camp. A cold fire, a torn satchel, and a line scratched into the wall: \"He's taking me to the Idol. Don't let him use the Key. And Rook: stop reading and RUN.\""],
 	],
 	"temple_plate": [
 		["rook", "The plate opens the gate, but not for long. Run."],
 	],
 	# --- Chapter VI ---
 	"idol_crane": [
-		["crane", "Right on time. The professor was just telling me how the Idol wakes."],
-		["ortiz", "Rook, no! He's put the Key in the altar. The Guardian..."],
-		["crane", "...answers to whoever holds the Idol. Which is about to be me. Kill them."],
+		["crane", "Right on time. The professor was just telling me how the Idol wakes. Well. Refusing to. At length."],
+		["ortiz", "Rook, no! He's put the real Key in the altar. The Guardian..."],
+		["crane", "...answers to whoever holds the Idol. Which is about to be me. Be a dear, stone man. Kill them."],
+		["rook", "Professor, you said you'd found a trail. You didn't say it had a butler."],
 	],
 	"idol_after": [
-		["ortiz", "You did it. The Guardian's gone, and Crane ran when it fell. The Idol... it's warm, Rook. Like it's been waiting."],
-		["ortiz", "The chamber is coming down. The way out is east, over the pit. Go!"],
+		["ortiz", "You did it. The Guardian's gone, and Crane ran the moment it fell. So much for the loyal butler."],
+		["ortiz", "The Idol... it's warm, Rook. Like it's been waiting. The chamber's coming down: the way out is east, over the pit. Go!"],
 	],
 }
 
 ## After the last chapter.
 const EPILOGUE := [
-	["", "The temple folded into the swamp behind them, and the jungle closed over it by morning."],
-	["ortiz", "The Sun Idol belongs to Itzel's people. It goes back to them, not to a museum, and certainly not to Crane."],
+	["", "The temple folded into the swamp behind them, and by morning the jungle had closed over it like it had never been there."],
+	["ortiz", "The Sun Idol belongs to Itzel's people. It goes back to them. Not to a museum, and certainly not to Crane."],
 	["rook", "And Crane?"],
-	["ortiz", "Somewhere down river, with a bad temper and no Idol. We haven't seen the last of him."],
+	["ortiz", "Somewhere down river, with a bad temper, a ruined suit and no Idol. We haven't seen the last of him."],
+	["tomas", "And Dolores? Dolores has been very brave. Dolores would like a raise."],
 	["", "THE END ... for now."],
 ]
 

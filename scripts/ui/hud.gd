@@ -135,6 +135,15 @@ func _draw_hud() -> void:
 		if have:
 			n.draw_rect(Rect2(g + Vector2(-1, -5), Vector2(2, 2)), Color("#8c8f99"))
 			n.draw_circle(g + Vector2(-1, -1), 1.0, Color("#6c7a46"))
+	# Air: a row of bubbles over the cylinder while holding your breath.
+	if _hero.air < Hero.AIR_MAX - 0.05:
+		var n_b := ceili(_hero.air / Hero.AIR_MAX * 8.0)
+		for i in 8:
+			var p := Vector2(12 + i * 7, 234)
+			var col := Color(0.8, 0.95, 1.0, 0.95) if i < n_b else Color(0.4, 0.5, 0.6, 0.35)
+			n.draw_arc(p, 2.5, 0.0, TAU, 8, col, 1.0)
+			if i < n_b:
+				n.draw_rect(Rect2(p + Vector2(-1, -1), Vector2(1, 1)), Color.WHITE)
 	# Gold carried (top right).
 	var font := ThemeDB.fallback_font
 	var gtext := "%d G" % GameState.gold

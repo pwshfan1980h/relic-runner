@@ -9,9 +9,9 @@ and splashes, a **buoyancy/drag field** for physics bodies, and a **swim state**
 "wet" reaction on enemies). Start with shallow/deep pools in existing biomes; the underwater chapter
 and the boat come after, on the same foundation.
 
-Findings are from reading the engine features we already rely on (Compatibility renderer, 2D physics,
-the rig/animator), not yet from a prototype. The last section lists the prototype that would confirm
-them.
+**Status: prototyped.** The prototype is built and runs in the testbed (`-- --map testbed`): a knee,
+waist and chest-deep ford, then a deep pool with a rock to dive under, piranhas, a caiman and a floating
+crate. The bot swims it end to end. Results are in §8.
 
 ---
 
@@ -101,3 +101,26 @@ buoyancy tuning.
 - [ ] A crate floats, a grenade sinks, a ragdoll bobs, with the §4 formula.
 - [ ] Swim controller: enter, dive, surface, climb out, air meter.
 - [ ] Underwater low-pass fades in and out cleanly as the camera crosses the surface.
+
+## 8. Prototype results
+
+Built: `scripts/world/water.gd` (volume, spring surface, refraction shader, buoyancy), the hero's
+`SWIM` state and graded wading in `scripts/hero/hero.gd`, `swim`/`tread` clips, water-aware enemies
+(wading, drowning, bodies float up), `Piranha` and `Caiman`, the air meter, underwater low-pass on
+the audio buses, splash/gasp sounds, and `Fx.droplets` / `Fx.bubbles`.
+
+- [x] Refraction via `hint_screen_texture` works in the Compatibility renderer (desktop). **Web still to
+      be measured.**
+- [x] Spring surface reacts to the hero, crates and grenades. First pass was too bouncy; now heavily
+      damped (K 110, damping 9), waves capped at 3px (or a third of the depth), splashes softened.
+- [x] Buoyancy by density: the crate floats, grenades sink, corpses bob; drag stops bodies bouncing.
+- [x] Swimming: enter by falling or walking in, float up to tread water, dive with S, lie along the
+      stroke with a flutter kick, 10s of air (bubbles on the HUD), gasp on surfacing, climb out by
+      grabbing the bank (the bank should be a tile above the water line). The water absorbs most of a
+      fall on entry.
+- [x] Depths: a half-full cell (`,`) makes knee-deep water possible on the 16px grid.
+- [x] Pools draw a rock back wall like caves, so water never floats in front of the sky.
+- [ ] Web export performance with several pools on screen.
+
+Lessons: a script error doesn't always stop the bot, so `tools/run_bots.sh` now fails any run that
+logs one.

@@ -231,6 +231,25 @@ func route_built() -> void:
 	_route_ok = true
 
 
+## Swim toward a point (diving with S when it's below us).
+func swim_to(target: Vector2, tol := 10.0) -> void:
+	_add("swim to %s" % (target / T).round(), func(_d):
+		var d := target - (hero.global_position + Vector2(0, -10))
+		_inputs({"right": d.x > 4.0, "left": d.x < -4.0, "down": d.y > 6.0, "up": d.y < -6.0,
+				"aim": hero.global_position + Vector2(hero.facing * 100, 0)})
+		return hero.state == Hero.S.SWIM and d.length() < tol, 12.0)
+
+
+## Treading water against a bank: push into it to grab the lip, then climb out.
+func climb_out(dir: int) -> void:
+	_add("grab the bank", func(_d):
+		_inputs({"right": dir > 0, "left": dir < 0})
+		return hero.state == Hero.S.HANG, 4.0)
+	_add("climb out", func(_d):
+		_inputs({"up": true})
+		return on_ground(), 2.5)
+
+
 func _route_testbed() -> void:
 	go(16 * T, true)
 	_add("up the 14 degree hill", func(_d): return hero.global_position.y <= 11 * T + 0.5, 0.1)
@@ -247,6 +266,29 @@ func _route_testbed() -> void:
 	go(52 * T, true)
 	halt()
 	grenade_at(Vector2(58 * T - 20, 11 * T + 8), func(): return wall_gone(58 * T), 5.0)
+	# Water: knee, waist and chest-deep fords, then a deep pool with a rock to dive under.
+	var X := 72
+	go((X + 12) * T, true)
+	_add("waded the knee-deep ford", func(_d): return x() > (X + 10) * T, 0.1)
+	go((X + 22) * T, true)
+	go((X + 30) * T, false)
+	climb_out(1)
+	_add("out of the chest-deep pool", func(_d): return hero.global_position.y <= 12 * T + 0.5, 0.1)
+	go((X + 35) * T, false)
+	_add("walk into the deep pool", func(_d):
+		_inputs({"right": true})
+		return hero.state == Hero.S.SWIM, 3.0)
+	swim_to(Vector2((X + 44) * T, 15 * T))
+	swim_to(Vector2((X + 52) * T, 15 * T + 4))
+	swim_to(Vector2((X + 62) * T, 12 * T + 8), 14.0)
+	climb_out(1)
+	_add("piranhas darted and the caiman lunged", func(_d):
+		return _seen.has("piranha") and _seen.has("caiman"), 0.1)
+	_add("the crate floats", func(_d):
+		for c in level.get_children():
+			if c is Crate:
+				return absf(c.global_position.y - 12 * T) < 10.0
+		return false, 0.1)
 	reach_exit()
 
 
@@ -539,9 +581,17 @@ func _next() -> void:
 		_finish()
 
 
+var _seen := {}  # things observed happening at any time (predator attacks...)
+
+
 func _physics_process(delta: float) -> void:
 	if _i < 0 or _i >= _steps.size():
 		return
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if e is Piranha and (e as Piranha).state == Piranha.S.DART:
+			_seen["piranha"] = true
+		if e is Caiman and (e as Caiman).state == Caiman.S.LUNGE:
+			_seen["caiman"] = true
 	_t += delta
 	var step: Array = _steps[_i]
 	if (step[1] as Callable).call(delta):

@@ -56,7 +56,7 @@ each chapter starts at a time of day that fits it, and the sky keeps turning whi
 - **Want:** the Sun Idol, and through it control of the Guardian. **Weakness:** believes everything can
   be owned.
 - **Arc in v1:** always one step ahead until the Idol Chamber; escapes downriver, setting up a sequel.
-- **Voice sample:** *"Keep your little key, Calloway. I have the professor, and she knows the way."*
+- **Voice sample:** *"Oh, keep the trinket, Calloway. It's a copy. The real Key went south on Tuesday."*
 
 ### Old Hattie — the prospector (Chapter I)
 - **Role:** tutorial voice and first friendly face.
@@ -103,7 +103,7 @@ at camp with Tomás.
 |---|---|---|---|---|
 | I | **The Letter** (Dry Gulch) | Canyon, afternoon into sunset | Hattie: Ortiz went up the mesa; Crane's men followed. Tomás waits at the end. | Run, skid, ledges, long jump, aim-and-fire, tree bridge, whip swing, grenades on loose stones, cracked walls |
 | II | **Rattler Mesa** | Climbing the mesa at sunset into dusk | Ortiz's journal page: the Sun Key sleeps in the Esperanza mine. From the top, lanterns at the mine. | A long climb: ledges, slopes, snakes, a swing high above the valley |
-| III | **The Silver Mine** | Night; deep, lantern-lit tunnels | Free Nico; the bandits already found the Sun Key; Crane taunts from the dark: he has Ortiz. | Darkness, bandit ambushes, timed gates, crumbling floors |
+| III | **The Silver Mine** | Night; deep, lantern-lit tunnels | Free Nico; Rook cracks the paymaster's strongbox for the Sun Key, only for Crane to gloat from the dark that it's a copy: the real Key, and Ortiz, went south on Tuesday. | Darkness, bandit ambushes, timed gates, crumbling floors |
 | IV | **Canopy Run** | Jungle at dawn | Meet Itzel: the Guardian and its glyph. | Chained swings, jaguars, pillar bridges |
 | V | **The Drowned Temple** | Inside the sunken temple, noon | Ortiz's abandoned camp: "Don't let him use the Key." | Traps: spikes, crumbling floors, timed gates, sealed passages |
 | VI | **The Idol Chamber** | The chamber, then the escape at sunset | Crane wakes the Guardian; Rook destroys it; Crane flees; Ortiz and the escape | Boss fight (glyph timing, grenades), escape run |
@@ -113,6 +113,40 @@ downriver. With all 18 relic fragments, a secret coda: the reassembled Sun Disc 
 far to the north (sequel hook).
 
 ---
+
+## Humour and running gags
+
+The comedy comes from character, never from winking at the player:
+- **Dolores**, Tomás's mule, bites everyone except the professor ("Dolores has taste"), sulks after the
+  steamer, is "very brave" in the epilogue and wants a raise.
+- **Hattie's tall tales**: her cousin the postman (why the letter took three weeks), her knees that
+  "retired in '09", and *Fella's Bottom*, the spot where a fella let go of the rope at the bottom of
+  the swing.
+- **Rook's dry asides** on everything: the town sign, the snakes, Crane's voice, being "the company".
+- **Crane's pomposity**: cigars too good to finish, a hotel in Tucson while his men dig at night,
+  "a retirement plan", and treating the Guardian like a butler.
+- **Crane's gang**: the bandit who doesn't know what a professor is, and the brute who thinks the boss
+  is very smart.
+- **Ortiz's exasperation**: every note she leaves Rook ends in a telling-off ("stop reading and RUN").
+- **Itzel's deadpan**: "You are going to touch something shiny."
+
+## Story sense check (fixed in this pass)
+
+- **The Sun Key.** Previously Crane mocked Rook for holding the Key, yet put "the Key" in the altar in
+  Chapter VI. Now the strongbox key in the mine is a decoy; the real one went south with Crane.
+- **Who found the Key.** Nico says the gang found it an hour ago and the boss locked it in his
+  strongbox; Rook opens the strongbox at the end of the chapter, so the beats line up.
+- **Hattie's knowledge.** She knows Ortiz went up the mesa, which sets up Chapter II's journal page.
+
+## Cutscenes
+
+Every chapter opens with a short in-engine cutscene (`assets/cutscenes/<chapter>.json`) staged with the
+game's own sky, rigs, props, fonts and dialogue box, so it always matches the game. They complement the
+levels instead of repeating them: Hattie, Itzel and Crane's big entrance stay as in-level moments.
+The scripts are written by **Claude Sonnet 5.5** via `tools/gen_cutscenes.py` (structured outputs
+enforce the format; extra checks keep every beat stageable and in character). The versions currently
+checked in are hand-written stand-ins in the same format, until the generator is run with API
+credentials.
 
 ## Incentives and progression
 

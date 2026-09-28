@@ -3,9 +3,16 @@
 Ideas accepted for later. Each needs a design pass before building.
 
 ## Water
-- [ ] **Research spike: water in general.** See [spikes/water.md](spikes/water.md) for findings and the
-      recommended approach (water volumes, surface rendering, buoyancy for rigid bodies, swimming
-      controller, what it does to the whip, guns, grenades and enemies).
+- [x] **Research spike: water in general.** Done and prototyped: see [spikes/water.md](spikes/water.md)
+      (water volumes, spring surface, refraction, buoyancy, swimming, wading depths, air, drowning,
+      piranhas and a caiman). Proven in the testbed's water course.
+- [ ] **Water in the campaign.** Add `pool`/`river` segments to `tools/build_maps.py` (with bot
+      `swim_to`/`climb_out` steps) and use them: flooded mine tunnels, the Drowned Temple's lower halls,
+      jungle river crossings with piranhas and caimans.
+- [ ] **Generate the cutscenes with Sonnet 5.5.** `pip install anthropic`, set credentials, run
+      `python3 tools/gen_cutscenes.py`; review the JSON (the checked-in ones are hand-written stand-ins).
+- [ ] **Water polish.** Caustics, blood clouds in water (Gore), the whip being slow underwater, grenade
+      shockwaves with bubbles, the hero's hat floating off on a long dive.
 - [ ] **Underwater level (campaign chapter).** A fully submerged level: the hero swims horizontally,
       propelled by kicking their feet (a flutter-kick swim cycle on the rig, body laid flat, arms
       forward), in a wetsuit with diving gear (mask, tank, air hose) and underwater weapons: a speargun

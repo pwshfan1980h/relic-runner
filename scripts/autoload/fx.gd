@@ -19,6 +19,7 @@ func clear() -> void:
 	_lines.clear()
 	_texts.clear()
 	_rings.clear()
+	_bubbles.clear()
 	_smears.clear()
 	_impacts.clear()
 	shake = 0.0
@@ -74,6 +75,20 @@ func explosion(pos: Vector2, radius: float) -> void:
 
 
 var _rings: Array = []  # shockwave rings: [pos, life, radius]
+var _bubbles: Array = []  # [pos, life, max_life, size, phase]
+
+
+## Water thrown up by a splash.
+func droplets(pos: Vector2, count := 6) -> void:
+	for i in count:
+		var v := Vector2(randf_range(-60, 60), randf_range(-170, -60))
+		_parts.append([pos, v, 0.0, randf_range(0.3, 0.6), randf_range(1.0, 2.0), Color(0.75, 0.9, 1.0, 0.85), GRAVITY * 2.0])
+
+
+## Rising bubbles (breath, bullets underwater, a thrashing swimmer).
+func bubbles(pos: Vector2, count := 3) -> void:
+	for i in count:
+		_bubbles.append([pos + Vector2(randf_range(-2, 2), randf_range(-2, 2)), 0.0, randf_range(0.6, 1.4), randf_range(0.7, 1.6), randf() * TAU])
 var _smears: Array = []  # melee motion smears: [a, b, life, max_life, width, color]
 var _impacts: Array = []  # hit flashes: [pos, dir, life, size]
 
@@ -115,6 +130,10 @@ func _process(delta: float) -> void:
 		tx[2] += delta
 		tx[0].y -= 18.0 * delta
 	_texts = _texts.filter(func(tx): return tx[2] < 1.4)
+	for b in _bubbles:
+		b[1] += delta
+		b[0] += Vector2(sin(b[1] * 9.0 + b[4]) * 10.0, -28.0) * delta
+	_bubbles = _bubbles.filter(func(b): return b[1] < b[2] and Water.at(get_tree(), b[0]) != null)
 	for r in _rings:
 		r[1] += delta
 	_rings = _rings.filter(func(r): return r[1] < 0.22)
@@ -128,6 +147,8 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
+	for b in _bubbles:
+		draw_arc((b[0] as Vector2).round(), b[3], 0.0, TAU, 6, Color(0.85, 0.95, 1.0, 0.8), 1.0)
 	for m in _smears:
 		var u: float = m[2] / m[3]
 		var a: Vector2 = m[0]

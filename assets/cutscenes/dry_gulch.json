@@ -1,0 +1,183 @@
+{
+ "chapter": "dry_gulch",
+ "title": "The Letter",
+ "shots": [
+  {
+   "biome": "canyon",
+   "hour": 14.8,
+   "setting": "desert_road",
+   "props": [
+    "signpost",
+    "dead_tree"
+   ],
+   "actors": [
+    {
+     "id": "rook",
+     "x": 40,
+     "facing": 1,
+     "clip": "idle"
+    }
+   ],
+   "steps": [
+    {
+     "action": "caption",
+     "actor": "",
+     "text": "Dry Gulch, Arizona. Population: eleven. Twelve on Sundays.",
+     "x": 0,
+     "seconds": 3
+    },
+    {
+     "action": "walk",
+     "actor": "rook",
+     "text": "",
+     "x": 150,
+     "seconds": 0
+    },
+    {
+     "action": "pan",
+     "actor": "",
+     "text": "",
+     "x": 40,
+     "seconds": 3
+    },
+    {
+     "action": "anim",
+     "actor": "rook",
+     "text": "idle_hat",
+     "x": 0,
+     "seconds": 1.2
+    },
+    {
+     "action": "say",
+     "actor": "rook",
+     "text": "\"Come quickly, and bring your whip.\" Three weeks ago. Nobody ever writes \"come at a sensible pace.\"",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "face",
+     "actor": "rook",
+     "text": "",
+     "x": 60,
+     "seconds": 0
+    },
+    {
+     "action": "say",
+     "actor": "rook",
+     "text": "The sign says Dry Gulch, two miles. Someone's painted TURN BACK over it. Someone else painted two miles back over that.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "say",
+     "actor": "rook",
+     "text": "Friendly town.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "walk",
+     "actor": "rook",
+     "text": "",
+     "x": 420,
+     "seconds": 0
+    }
+   ]
+  },
+  {
+   "biome": "canyon",
+   "hour": 15.0,
+   "setting": "mesa_top",
+   "props": [
+    "crates"
+   ],
+   "actors": [
+    {
+     "id": "bandit",
+     "x": 180,
+     "facing": 1,
+     "clip": "idle"
+    },
+    {
+     "id": "bandit2",
+     "x": 260,
+     "facing": -1,
+     "clip": "idle"
+    }
+   ],
+   "steps": [
+    {
+     "action": "caption",
+     "actor": "",
+     "text": "Meanwhile, up on the mesa...",
+     "x": 0,
+     "seconds": 2.5
+    },
+    {
+     "action": "say",
+     "actor": "bandit",
+     "text": "Boss says the old lady's up here somewhere.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "say",
+     "actor": "bandit2",
+     "text": "Professor.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "say",
+     "actor": "bandit",
+     "text": "What?",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "say",
+     "actor": "bandit2",
+     "text": "She's a professor. Boss says be polite.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "say",
+     "actor": "bandit",
+     "text": "...Polite how?",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "say",
+     "actor": "bandit2",
+     "text": "Don't shoot her first.",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "sfx",
+     "actor": "",
+     "text": "rifle",
+     "x": 0,
+     "seconds": 0
+    },
+    {
+     "action": "shake",
+     "actor": "",
+     "text": "",
+     "x": 0,
+     "seconds": 0.3
+    },
+    {
+     "action": "say",
+     "actor": "bandit",
+     "text": "Was that me? That was me. Sorry.",
+     "x": 0,
+     "seconds": 0
+    }
+   ]
+  }
+ ],
+ "_source": "hand-written stand-in (regenerate with tools/gen_cutscenes.py)"
+}
