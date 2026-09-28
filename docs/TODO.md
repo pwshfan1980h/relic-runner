@@ -27,4 +27,3 @@ Ideas accepted for later. Each needs a design pass before building.
 
 ## Carried over
 - [ ] Voice barks for the named cast (Hattie, Tomás, Nico, Itzel, Ortiz, Crane).
-- [ ] A proper pixel font for titles and dialogue (currently the engine fallback font).

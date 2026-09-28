@@ -954,6 +954,7 @@ func _pose(delta: float) -> void:
 	var pose := anim.advance(delta)
 	var lock: int = HeroAnims.clips[anim.clip_name]["lock"]
 	rig.apply(pose, lock)
+	rig.motion = velocity
 	# Swinging: the whole body hangs from the gripping hand and follows the rope.
 	var grip := Vector2(0, -GRIP_H)
 	var want := 0.0

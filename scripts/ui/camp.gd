@@ -27,6 +27,7 @@ var _mode := "main"
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	get_tree().paused = false
+	HeroRig.wind = 12.0  # a breeze for coats and hats
 	var next_biome := "canyon"
 	if not GameState.campaign_over():
 		next_biome = Maps.get_map(Story.CHAPTERS[GameState.chapter]["map"])["biome"]

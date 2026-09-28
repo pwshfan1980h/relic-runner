@@ -41,6 +41,7 @@ func _label(pos: Vector2, size: int, align: HorizontalAlignment) -> Label:
 	l.size = Vector2(480, 20)
 	l.horizontal_alignment = align
 	var ls := LabelSettings.new()
+	ls.font = UI.font_for(size)
 	ls.font_size = size
 	ls.font_color = INK
 	ls.shadow_color = SHADOW

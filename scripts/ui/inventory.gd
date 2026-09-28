@@ -19,6 +19,8 @@ func _ready() -> void:
 	_text.bbcode_enabled = true
 	_text.position = Vector2(52, 30)
 	_text.size = Vector2(376, 212)
+	_text.add_theme_font_override("normal_font", UI.body)
+	_text.add_theme_font_override("bold_font", UI.body)
 	_text.add_theme_font_size_override("normal_font_size", 8)
 	_text.add_theme_font_size_override("bold_font_size", 8)
 	_text.add_theme_color_override("default_color", Color("#f4e4c0"))

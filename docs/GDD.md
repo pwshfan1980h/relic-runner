@@ -53,6 +53,11 @@ test rooms are reachable with `-- --map <id>`.
   hazed toward the horizon colour by distance. The playfield's ambient light follows the sky.
 - Tiles: limited palette with dithering only at tone transitions (no speckle). Slopes of any gradient
   are drawn with the same rock and a pixel-stepped crust.
+- Type: pixel fonts only, at 8/16/32px so they stay crisp: Tiny5 for body text, Pixelify Sans for
+  titles and menus (`UI.setup_fonts()` makes Tiny5 the default everywhere).
+- Wind: every rig's jacket hem hangs on a spring bone and the hat tips; both answer the level's
+  gusting breeze plus the air of the character's own motion (running streams the coat back, falls lift
+  it). Canyon is breezy, the jungle nearly still, caves calm.
 - Lighting: caves drop the ambient very low (torches, lanterns and muzzle flashes carry them; the
   hero's eyes adjust a little). Explosions flash and cast shadows.
 - Melee: fists and boots leave air-cutting smears along their real path, and hits flash with a

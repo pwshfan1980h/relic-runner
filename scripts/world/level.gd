@@ -356,6 +356,8 @@ func _physics_process(delta: float) -> void:
 	_ambient.color = outdoor.lerp(cave, smoothstep(0.0, 1.0, _dark_w))
 	_ambient.color.a = 1.0
 	hero.set_glow(maxf(_dark_w, sky.night() * 0.6))
+	var breeze := 34.0 if map["biome"] == "canyon" else 14.0
+	HeroRig.wind = breeze * (1.0 - _dark_w * 0.9)
 	if not _done and _exit_pos != Vector2.INF and hero.global_position.distance_to(_exit_pos) < 10.0 \
 			and hero.state != Hero.S.DEAD:
 		_done = true

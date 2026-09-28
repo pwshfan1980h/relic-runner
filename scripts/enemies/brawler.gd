@@ -167,6 +167,7 @@ func _physics_process(delta: float) -> void:
 	if dead or not is_instance_valid(rig):
 		return
 	rig.modulate = Color(2.2, 2.2, 2.2) if _flash > 0.0 else Color.WHITE
+	rig.motion = velocity
 	rig.facing = facing
 	var busy := anim.clip_name == "hurt" and not anim.finished() or state == S.BARGE
 	if not busy:

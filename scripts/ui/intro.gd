@@ -26,6 +26,7 @@ var _anims: Array = []  # [rig, animator]
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
+	HeroRig.wind = 40.0  # a breeze for coats and hats
 	Audio.ambience("")
 	Audio.music("music_intro", 0.5)
 	var hud := CanvasLayer.new()

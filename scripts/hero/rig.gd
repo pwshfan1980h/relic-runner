@@ -42,6 +42,14 @@ var whip_coil: Node2D  # hidden while the whip is out
 var gun: Node2D
 var grenade: Node2D  # shown in the far hand while a grenade throw is being aimed
 var size_scale := 1.0  # big men (the Brute) are drawn larger
+## Wind: the world's breeze (px/s along x, set by the level; gusts are added here) and the
+## owner's velocity (air rushing past). Together they flap the coat hem and tip the hat.
+static var wind := 30.0
+var motion := Vector2.ZERO
+var _coat := 0.0
+var _coat_v := 0.0
+var _hat_base := 0.0
+var _wt := randf() * 20.0
 var facing := 1:
 	set(v):
 		facing = 1 if v >= 0 else -1
@@ -145,6 +153,11 @@ func _build() -> void:
 	_poly(torso, PackedVector2Array([Vector2(0.6, -10.5), Vector2(2.5, -10.1), Vector2(1.7, -7.2)]), SHIRT, 0)
 	_poly(torso, PackedVector2Array([Vector2(-2.7, 0.0), Vector2(2.8, 0.0), Vector2(2.8, 1.3), Vector2(-2.7, 1.3)]), BELT, 0)
 	_poly(torso, PackedVector2Array([Vector2(2.3, -10.0), Vector2(2.9, -9.4), Vector2(-2.0, -0.4), Vector2(-2.6, -1.0)]), SATCHEL * Color(0.7, 0.7, 0.7), 0)
+	# The jacket's hem, on its own bone so the wind can take it (see _process).
+	var coat := _bone("coat", torso, Vector2(-0.6, 1.0))
+	_poly(coat, PackedVector2Array([Vector2(-2.3, -0.4), Vector2(1.4, -0.4), Vector2(1.0, 4.2), Vector2(-0.6, 6.0), Vector2(-2.9, 5.2)]), JACKET, -1)
+	_poly(coat, PackedVector2Array([Vector2(-2.3, -0.4), Vector2(-0.8, -0.4), Vector2(-0.6, 6.0), Vector2(-2.9, 5.2)]), JACKET_D, -1)
+	_poly(coat, PackedVector2Array([Vector2(-2.9, 5.2), Vector2(-0.6, 6.0), Vector2(-0.6, 5.4), Vector2(-2.8, 4.7)]), JACKET_L, -1)
 	# Satchel bag on the far hip and the coiled whip on the near hip.
 	_poly(hips, PackedVector2Array([Vector2(-4.3, -1.5), Vector2(-1.4, -1.5), Vector2(-1.2, 3.0), Vector2(-4.1, 3.0)]), SATCHEL, -1)
 	_poly(hips, PackedVector2Array([Vector2(-4.3, -1.5), Vector2(-1.4, -1.5), Vector2(-1.4, -0.4), Vector2(-4.3, -0.4)]), SATCHEL * Color(0.75, 0.75, 0.75), -1)
@@ -185,6 +198,28 @@ func _build() -> void:
 	bones["hand_b"].add_child(grenade)
 	_poly(grenade, circle(Vector2(0, 1.6), 1.7, 8), Color("#3e4a2c"), 9)
 	_poly(grenade, circle(Vector2(-0.4, 1.2), 0.8, 6), Color("#5c6a3e"), 9)
+
+
+func _process(delta: float) -> void:
+	_wt += delta
+	# Gusts: two slow waves beating together, never quite still.
+	var gust := wind * (0.55 + 0.45 * sin(_wt * 0.9) * sin(_wt * 2.3 + 1.0))
+	# Air relative to us, in rig space (+ = blowing toward where we face).
+	var rel := (gust - motion.x) * float(facing)
+	var strength := clampf(absf(rel) / 150.0, 0.0, 1.0)
+	# The hem swings away from the air, lifts when falling, and flutters in strong wind.
+	var target := -rel * 0.012
+	if motion.y > 0.0:
+		target += (1.0 if target >= 0.0 else -1.0) * motion.y * 0.0025
+	target += sin(_wt * 23.0) * 0.08 * strength + sin(_wt * 37.0) * 0.04 * strength
+	target = clampf(target, -0.6, 1.0)
+	_coat_v += (target - _coat) * 90.0 * delta
+	_coat_v *= exp(-9.0 * delta)
+	_coat += _coat_v * delta
+	(bones["coat"] as Node2D).rotation = _coat
+	# The hat tips into the wind and trembles in gusts.
+	var tip := -rel * 0.0012 + sin(_wt * 17.0) * 0.045 * strength
+	(bones["hat"] as Node2D).rotation = _hat_base + clampf(tip, -0.2, 0.2)
 
 
 ## Palette swap: {original Color: new Color}. Far-side parts keep their depth tint.
@@ -244,6 +279,7 @@ func apply(pose: Dictionary, lock := 0) -> void:
 	bones["torso"].rotation_degrees = torso
 	bones["head"].rotation_degrees = pose.get("head", 0.0) - torso
 	bones["hat"].rotation_degrees = pose.get("hat", 0.0)
+	_hat_base = bones["hat"].rotation
 	for s in ["f", "b"]:
 		bones["ua_" + s].rotation_degrees = pose.get("ua_" + s, 0.0)
 		bones["fa_" + s].rotation_degrees = pose.get("fa_" + s, 0.0)

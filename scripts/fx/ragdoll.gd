@@ -11,7 +11,7 @@ const LIFETIME := 30.0
 
 # part: [bones whose polygons it takes, parent part, collider size (along the bone), round]
 const PARTS := {
-	"torso": [["hips", "torso"], "", Vector2(6, 12), false],
+	"torso": [["hips", "torso", "coat"], "", Vector2(6, 12), false],
 	"head": [["head"], "torso", Vector2(5, 5), true],
 	"ua_f": [["ua_f"], "torso", Vector2(2.4, 5), false],
 	"fa_f": [["fa_f", "hand_f"], "ua_f", Vector2(2.2, 5.5), false],

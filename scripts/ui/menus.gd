@@ -144,7 +144,7 @@ class Pause:
 		shade.color = Color(0, 0, 0, 0.55)
 		shade.size = Vector2(480, 270)
 		_root.add_child(shade)
-		UI.label(_root, "PAUSED", Vector2(0, 50), 24, UI.GOLD)
+		UI.label(_root, "PAUSED", Vector2(0, 44), 32, UI.GOLD)
 		_list = List.new()
 		_root.add_child(_list)
 		_list.setup(["RESUME", "HOW TO PLAY", "OPTIONS", "RESTART CHAPTER", "QUIT TO TITLE"], Vector2(0, 96))
@@ -237,7 +237,7 @@ class ChapterCard:
 		bg.size = Vector2(480, 270)
 		_root.add_child(bg)
 		UI.label(_root, chapter["num"], Vector2(0, 76), 8, UI.GOLD)
-		UI.label(_root, (chapter["title"] as String).to_upper(), Vector2(0, 90), 24, UI.INK)
+		UI.label(_root, (chapter["title"] as String).to_upper(), Vector2(0, 86), 32, UI.INK)
 		var rule := ColorRect.new()
 		rule.color = UI.RULE
 		rule.position = Vector2(200, 124)

@@ -38,6 +38,7 @@ const MUSIC := {"proving_grounds": "canyon", "testbed": "canyon", "dry_gulch": "
 
 
 func _ready() -> void:
+	UI.setup_fonts()
 	_load_settings()
 	# Screenshots for review: -- --snap <dir> [--every s] [--count n] (needs a window).
 	var args := OS.get_cmdline_user_args()

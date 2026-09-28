@@ -27,6 +27,7 @@ var _actions: Array[String] = []
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	get_tree().paused = false
+	HeroRig.wind = 45.0  # a breeze for coats and hats
 	_sky = SkyDome.new("canyon", 18.7)
 	_sky.speed = 0.02
 	add_child(_sky)

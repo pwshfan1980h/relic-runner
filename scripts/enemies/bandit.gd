@@ -130,6 +130,7 @@ func _on_die() -> void:
 func _physics_process(delta: float) -> void:
 	super(delta)
 	rig.modulate = Color(2.2, 2.2, 2.2) if _flash > 0.0 else Color.WHITE
+	rig.motion = velocity
 	if dead:
 		# Base class fades us; keep drawing the rig's death pose.
 		rig.apply(anim.advance(delta), 2)

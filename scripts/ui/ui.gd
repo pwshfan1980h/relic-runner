@@ -10,6 +10,35 @@ const SHADOW := Color("#140a06")
 const PANEL := Color(0.07, 0.04, 0.025, 0.9)
 const RULE := Color("#8a6a30")
 
+## Pixel fonts (SIL OFL, see assets/fonts): Tiny5 for body text at 8px, Pixelify Sans for
+## titles at 16/32px. Both render crisp only at multiples of 8, so stick to 8, 16 and 32.
+static var body: FontFile
+static var display: FontFile
+
+
+## Loads both fonts un-smoothed and makes Tiny5 the default everywhere (labels without a
+## font, and every draw_string that uses ThemeDB.fallback_font).
+static func setup_fonts() -> void:
+	body = _pixel_font("res://assets/fonts/Tiny5-Regular.ttf")
+	display = _pixel_font("res://assets/fonts/PixelifySans.ttf")
+	ThemeDB.fallback_font = body
+	ThemeDB.fallback_font_size = 8
+
+
+static func _pixel_font(path: String) -> FontFile:
+	var f := load(path) as FontFile
+	f.antialiasing = TextServer.FONT_ANTIALIASING_NONE
+	f.hinting = TextServer.HINTING_NONE
+	f.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
+	f.generate_mipmaps = false
+	f.multichannel_signed_distance_field = false
+	return f
+
+
+## The right face for a size: display for headings, body for everything else.
+static func font_for(size: int) -> FontFile:
+	return display if size >= 16 else body
+
 
 static func label(parent: Node, text: String, pos: Vector2, size := 8, color := INK, width := 480.0,
 		align := HORIZONTAL_ALIGNMENT_CENTER, outline := 0) -> Label:
@@ -20,6 +49,7 @@ static func label(parent: Node, text: String, pos: Vector2, size := 8, color := 
 	l.horizontal_alignment = align
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var ls := LabelSettings.new()
+	ls.font = font_for(size)
 	ls.font_size = size
 	ls.font_color = color
 	ls.shadow_color = SHADOW
@@ -43,6 +73,7 @@ static func para(parent: Node, text: String, pos: Vector2, width: float, size :=
 	l.custom_minimum_size = Vector2(width, 0)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var ls := LabelSettings.new()
+	ls.font = font_for(size)
 	ls.font_size = size
 	ls.font_color = color
 	ls.shadow_color = SHADOW
