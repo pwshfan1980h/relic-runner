@@ -59,7 +59,18 @@ uniform float stars;
 uniform float scroll;
 uniform float time;
 
-float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+// Sine-free hashes (Dave Hoskins): no precision banding, no repeating patterns.
+float hash12(vec2 p) {
+	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+	p3 += dot(p3, p3.yzx + 33.33);
+	return fract((p3.x + p3.y) * p3.z);
+}
+vec2 hash22(vec2 p) {
+	vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
+	p3 += dot(p3, p3.yzx + 33.33);
+	return fract((p3.xx + p3.yz) * p3.zy);
+}
+float hash(vec2 p) { return hash12(p); }
 float noise(vec2 p) {
 	vec2 i = floor(p); vec2 f = fract(p);
 	f = f * f * (3.0 - 2.0 * f);
@@ -78,12 +89,32 @@ void fragment() {
 	float m = distance(px, moon_pos);
 	col += vec3(0.5, 0.55, 0.7) * exp(-m / 18.0) * 0.25 * moon_vis;
 	if (m < 5.0) col = mix(col, vec3(0.88, 0.9, 0.96), moon_vis);
-	// Stars, twinkling, drifting a touch with the camera.
-	vec2 sp = px + vec2(floor(scroll * 0.02), 0.0);
-	float h = hash(sp);
-	if (h > 0.9965 && px.y < 160.0) {
-		float tw = 0.6 + 0.4 * sin(time * (2.0 + h * 40.0) + h * 90.0);
-		col = mix(col, vec3(1.0, 0.96, 0.9), stars * tw * (1.0 - t * 0.7));
+	// Stars: one chance per 7px cell at a random spot inside it (a jittered grid spreads
+	// them evenly with no visible pattern), thicker along a faint Milky Way milky. Sizes,
+	// tints and twinkle rates all come from the cell's own hash, so no two look alike.
+	vec2 sky = px + vec2(floor(scroll * 0.02), 0.0);
+	float milky = exp(-pow((sky.y - 70.0 + sky.x * 0.18 - 40.0 * sin(sky.x * 0.004)) / 34.0, 2.0));
+	float dust = noise(sky * 0.035) * 0.6 + noise(sky * 0.09) * 0.4;
+	col += vec3(0.05, 0.05, 0.08) * milky * smoothstep(0.35, 0.8, dust) * stars * (1.0 - t);
+	vec2 cell = floor(sky / 7.0);
+	vec2 at = cell * 7.0 + 1.0 + floor(hash22(cell) * 5.0);
+	float chance = hash12(cell + 17.3);
+	float bright = hash12(cell + 5.1);
+	if (chance < 0.07 + 0.3 * milky * dust && px.y < 165.0) {
+		vec2 d = abs(sky - at);
+		float lum = 0.0;
+		if (d.x + d.y < 0.5) {
+			lum = 0.35 + 0.65 * bright;
+		} else if (bright > 0.9 && d.x + d.y < 1.5) {
+			lum = 0.35;  // the brightest few get a little cross
+		}
+		if (lum > 0.0) {
+			float rate = 1.5 + hash12(cell + 9.7) * 5.0;
+			float tw = 0.7 + 0.3 * sin(time * rate + bright * 40.0);
+			float hue = hash12(cell + 3.3);
+			vec3 tint = hue < 0.25 ? vec3(0.8, 0.88, 1.0) : (hue > 0.85 ? vec3(1.0, 0.85, 0.7) : vec3(1.0, 0.97, 0.92));
+			col = mix(col, tint, clamp(lum * tw * stars * (1.0 - t * 0.7), 0.0, 1.0));
+		}
 	}
 	// Cloud streaks: long and thin, lit by the sun from the horizon side.
 	float cy = px.y / 170.0;
