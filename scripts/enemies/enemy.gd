@@ -22,7 +22,9 @@ var _home := Vector2.ZERO
 func _ready() -> void:
 	collision_layer = 4
 	collision_mask = 1
-	floor_snap_length = 4.0
+	floor_snap_length = 6.0
+	floor_max_angle = deg_to_rad(50)
+	floor_constant_speed = true
 	add_to_group("enemy")
 	add_to_group("whippable")
 	z_index = 4
@@ -89,6 +91,9 @@ func take_hit(dmg: int, dir: Vector2, at: Vector2, kind := "bullet") -> void:
 		"punch":
 			velocity.x += dir.x * 120.0 * knock_scale
 			stun = maxf(stun, 0.25)
+		"explosion":
+			velocity = Vector2(dir.x * 240.0, minf(dir.y, -0.6) * 260.0) * knock_scale
+			stun = maxf(stun, 0.9)
 		_:
 			velocity.x += dir.x * 50.0 * knock_scale
 	bleed(at, dir, 10)
@@ -188,7 +193,7 @@ func _on_die() -> void:
 ## Humans (rig-based enemies) die as ragdolls; the killing blow decides what tears.
 func ragdoll_death(rig: HeroRig) -> void:
 	var near := hero != null and hero.global_position.distance_to(global_position) < 48.0
-	var push := death_dir * (120.0 if death_kind in ["bullet", "headshot"] else 260.0)
+	var push := death_dir * (120.0 if death_kind in ["bullet", "headshot"] else (420.0 if death_kind == "explosion" else 260.0))
 	if near:
 		push *= 1.6
 	var tear: Array = []
@@ -198,6 +203,11 @@ func ragdoll_death(rig: HeroRig) -> void:
 			Gore.of(self).burst(death_at, 40, death_dir)
 		if death_kind == "kick" and randf() < 0.5 or near and randf() < 0.4:
 			tear.append(["ua_f", "ua_b", "th_f", "th_b"].pick_random())
+		if death_kind == "explosion":
+			var parts := ["head", "ua_f", "ua_b", "th_f", "th_b"]
+			parts.shuffle()
+			tear.append_array(parts.slice(0, 1 + randi() % 3))
+			Gore.of(self).burst(death_at, 50, Vector2.UP)
 		if death_kind == "spikes":
 			tear.append_array(["th_f", "th_b"].slice(0, 1 + randi() % 2))
 	Ragdoll.from_rig(rig, get_parent(), velocity, push, death_at, tear)
@@ -248,9 +258,10 @@ func can_walk(dir: int, ahead := 8.0) -> bool:
 	var space := get_world_2d().direct_space_state
 	var p := global_position
 	var wall := PhysicsRayQueryParameters2D.create(p + Vector2(0, -4), p + Vector2(dir * (size.x / 2 + 3), -4), 1)
-	if not space.intersect_ray(wall).is_empty():
+	var w := space.intersect_ray(wall)
+	if not w.is_empty() and absf(w.normal.x) > 0.8:
 		return false
-	var floor_q := PhysicsRayQueryParameters2D.create(p + Vector2(dir * ahead, -2), p + Vector2(dir * ahead, 10), 1)
+	var floor_q := PhysicsRayQueryParameters2D.create(p + Vector2(dir * ahead, -12), p + Vector2(dir * ahead, 12), 1)
 	return not space.intersect_ray(floor_q).is_empty()
 
 

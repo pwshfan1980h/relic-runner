@@ -54,6 +54,13 @@ class Crumble:
 		_shape.position = Vector2(8, 8)
 		add_child(_shape)
 		_tex = load("res://assets/sprites/%s_tiles.png" % biome)
+		add_to_group("crumble")
+
+	## Grenades bring it down at once.
+	func collapse() -> void:
+		if _t < 0.0:
+			_t = 0.45
+			Audio.play_at("crumble_crack", global_position, -2.0)
 
 	func _physics_process(delta: float) -> void:
 		var hero := get_tree().get_first_node_in_group("hero") as Hero

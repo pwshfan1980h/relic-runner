@@ -6,10 +6,8 @@ extends Node2D
 signal cleared
 
 const T := 16
-const BACKDROP := {
-	"canyon": [["canyon_sky", 0.05], ["canyon_mid", 0.25], ["canyon_near", 0.5]],
-	"jungle": [["jungle_sky", 0.05], ["jungle_mid", 0.25], ["jungle_near", 0.5]],
-}
+## Caves: how dark the ambient gets (times the biome tint). Torches carry these.
+const CAVE_DARK := 0.13
 
 var map_id := "proving_grounds"
 var map: Dictionary
@@ -21,6 +19,8 @@ var cam: Camera2D
 var hud: Hud
 var tiles: TileMapLayer
 var _ambient: CanvasModulate
+var sky: SkyDome
+var _dark_w := 0.0  # 0 outside, 1 deep in a cave (eased)
 var _dark_px: Array[Rect2] = []
 var _look := Vector2.ZERO
 var _exit_pos := Vector2.INF
@@ -33,7 +33,7 @@ func _ready() -> void:
 
 
 func build(id: String) -> void:
-	map = Maps.ALL[id]
+	map = Maps.get_map(id)
 	rows = map["rows"]
 	h = rows.size()
 	for r in rows:
@@ -41,8 +41,17 @@ func build(id: String) -> void:
 	for r in map.get("dark", []):
 		var rect: Rect2i = r
 		_dark_px.append(Rect2(rect.position * T, rect.size * T))
-	_backdrop(map["biome"])
+	var ci := Story.chapter_index(id)
+	var hour: float = Story.CHAPTERS[ci]["hour"] if ci >= 0 else map.get("hour", 16.0)
+	var args := OS.get_cmdline_user_args()
+	if args.has("--hour"):
+		hour = float(args[args.find("--hour") + 1])
+	sky = SkyDome.new(map["biome"], hour)
+	add_child(sky)
 	_tiles(map["biome"])
+	var slopes := Slopes.new()
+	add_child(slopes)
+	slopes.build(rows, map["biome"])
 	_entities()
 	_ambient = CanvasModulate.new()
 	_ambient.color = map["ambient"]
@@ -55,6 +64,7 @@ func build(id: String) -> void:
 	add_child(cam)
 	cam.global_position = hero.global_position
 	cam.make_current()
+	sky.base_y = hero.global_position.y - 24.0
 	var cross := Crosshair.new()
 	cross.hero = hero
 	add_child(cross)
@@ -64,6 +74,12 @@ func build(id: String) -> void:
 	hud.bind(hero, map["title"])
 	Audio.ambience("amb_%s_loop" % map["biome"], -16.0)
 	Audio.music("music_" + GameState.MUSIC.get(map_id, "canyon"))
+	add_child(Menus.Pause.new())
+	hero.died.connect(func(): GameState.run["deaths"] = GameState.run.get("deaths", 0) + 1)
+	if ci >= 0 and not OS.get_cmdline_user_args().has("--bot"):
+		var card := Menus.ChapterCard.new()
+		card.chapter = Story.CHAPTERS[ci]
+		add_child(card)
 	if OS.get_cmdline_user_args().has("--bot"):
 		var bot := Bot.new()
 		bot.level = self
@@ -83,8 +99,14 @@ func solid(x: int, y: int) -> bool:
 	return cell(x, y) == "#"
 
 
+## Rock or an incline: tiles next to a slope don't draw an exposed edge against it.
+func _blocks(x: int, y: int) -> bool:
+	var c := cell(x, y)
+	return c == "#" or c == "/" or c == "\\"
+
+
 func _mask(x: int, y: int) -> int:
-	return int(solid(x, y - 1)) | int(solid(x + 1, y)) << 1 | int(solid(x, y + 1)) << 2 | int(solid(x - 1, y)) << 3
+	return int(_blocks(x, y - 1)) | int(_blocks(x + 1, y)) << 1 | int(_blocks(x, y + 1)) << 2 | int(_blocks(x - 1, y)) << 3
 
 
 func _tileset(biome: String) -> TileSet:
@@ -143,23 +165,6 @@ func _tiles(biome: String) -> void:
 				back.set_cell(Vector2i(x, y), 0, Vector2i(15, v))
 
 
-func _backdrop(biome: String) -> void:
-	var i := 0
-	for layer in BACKDROP[biome]:
-		var p := Parallax2D.new()
-		p.scroll_scale = Vector2(layer[1], 0.0)
-		p.repeat_size = Vector2(480, 0)
-		p.repeat_times = 3
-		p.z_index = -20 + i
-		var s := Sprite2D.new()
-		s.texture = load("res://assets/sprites/%s.png" % layer[0])
-		s.centered = false
-		s.light_mask = 0  # the sky isn't lit by torches or muzzle flashes
-		p.add_child(s)
-		add_child(p)
-		i += 1
-
-
 func _entities() -> void:
 	# The hero first: enemies look them up when they enter the tree.
 	for y in h:
@@ -175,6 +180,11 @@ func _entities() -> void:
 	var biome: String = map["biome"]
 	var signs: Array = map.get("signs", [])
 	var sign_i := 0
+	var npcs: Array = map.get("npcs", [])
+	var npc_i := 0
+	var triggers: Array = map.get("triggers", [])
+	var trig_i := 0
+	var frag_i := 0
 	for y in h:
 		for x in w:
 			var ch := cell(x, y)
@@ -219,6 +229,25 @@ func _entities() -> void:
 						add_child(g)
 				"_":
 					node = Hazards.Plate.new()
+				"Y":
+					if cell(x, y + 1) != "Y":
+						var tp := Breakables.Toppler.new()
+						var n := 0
+						while cell(x, y - n) == "Y":
+							n += 1
+						tp.height = n * T
+						tp.biome = biome
+						node = tp
+				"%":
+					if cell(x, y - 1) != "%":
+						var wl := Breakables.Wall.new()
+						var n := 0
+						while cell(x, y + n) == "%":
+							n += 1
+						wl.rows = n
+						wl.biome = biome
+						wl.position = Vector2(x * T, y * T)
+						add_child(wl)
 				"K":
 					node = Hazards.Checkpoint.new()
 				"L":
@@ -233,6 +262,28 @@ func _entities() -> void:
 					sg.text = signs[sign_i] if sign_i < signs.size() else ""
 					sign_i += 1
 					node = sg
+				"N":
+					var np := StoryProps.Npc.new()
+					var spec: Array = npcs[npc_i] if npc_i < npcs.size() else ["hattie", "", "", {}]
+					np.who = spec[0]
+					np.talk_id = spec[1]
+					np.after_id = spec[2] if spec.size() > 2 else ""
+					np.reward = spec[3] if spec.size() > 3 else {}
+					npc_i += 1
+					node = np
+				"!":
+					var tg := StoryProps.Trigger.new()
+					tg.talk_id = triggers[trig_i] if trig_i < triggers.size() else ""
+					trig_i += 1
+					node = tg
+				"*":
+					var fr := StoryProps.Fragment.new()
+					fr.map = map_id
+					fr.index = frag_i
+					frag_i += 1
+					node = fr
+				"g":
+					node = StoryProps.Supply.new()
 				"s":
 					node = Scorpion.new()
 				"r":
@@ -257,10 +308,13 @@ func _entities() -> void:
 				if node.position == Vector2.ZERO:
 					node.position = base
 				add_child(node)
+				if node is Enemy:
+					(node as Enemy).died.connect(func(_e): GameState.run["kills"] = GameState.run.get("kills", 0) + 1)
 
 
 func _on_boss_defeated() -> void:
-	hud.banner("THE GUARDIAN FALLS")
+	hud.banner("THE GUARDIAN FALLS", false)
+	get_tree().create_timer(2.0).timeout.connect(func(): DialogueBox.play(get_tree(), Story.talk("idol_after")))
 	for g in get_tree().get_nodes_in_group("gate"):
 		(g as Hazards.Gate).trigger(true)
 
@@ -291,17 +345,27 @@ func _physics_process(delta: float) -> void:
 	var target := hero.global_position + Vector2(0, -24) + _look
 	cam.global_position = cam.global_position.lerp(target, 1.0 - exp(-7.0 * delta))
 	cam.offset = Fx.offset()
-	# Lighting: caves dim the ambient so torches and muzzle flashes carry the scene.
-	var want: Color = map["dark_ambient"] if _in_dark(hero.global_position + Vector2(0, -16)) else map["ambient"]
-	_ambient.color = _ambient.color.lerp(want, minf(1.0, delta * 3.0))
+	sky.cam = cam.get_screen_center_position()
+	# Lighting: the sky sets the ambient outdoors; caves drop it low so torches, lanterns
+	# and muzzle flashes carry the scene. The hero's eyes adjust a little (a faint glow).
+	var inside := _in_dark(hero.global_position + Vector2(0, -16))
+	_dark_w = move_toward(_dark_w, 1.0 if inside else 0.0, delta * 1.5)
+	var tint: Color = map["ambient"]
+	var outdoor := sky.light() * tint
+	var cave: Color = map.get("dark_ambient", Color(tint.r * CAVE_DARK, tint.g * CAVE_DARK, tint.b * CAVE_DARK))
+	_ambient.color = outdoor.lerp(cave, smoothstep(0.0, 1.0, _dark_w))
+	_ambient.color.a = 1.0
+	hero.set_glow(maxf(_dark_w, sky.night() * 0.6))
 	if not _done and _exit_pos != Vector2.INF and hero.global_position.distance_to(_exit_pos) < 10.0 \
 			and hero.state != Hero.S.DEAD:
 		_done = true
 		Audio.play("level_clear", -4.0)
-		hud.banner("TRIAL COMPLETE")
 		cleared.emit()
 		if not OS.get_cmdline_user_args().has("--bot"):
-			get_tree().create_timer(2.5).timeout.connect(GameState.next)
+			get_tree().create_timer(1.2).timeout.connect(func():
+				var sm := Menus.Summary.new()
+				sm.map = map_id
+				add_child(sm))
 	# Signposts: show their hint while the hero stands near one.
 	var hint := ""
 	for sg in get_tree().get_nodes_in_group("sign"):
@@ -309,6 +373,4 @@ func _physics_process(delta: float) -> void:
 			hint = (sg as Hazards.Sign).text
 	hud.hint(hint)
 	if Input.is_action_just_pressed("restart"):
-		get_tree().reload_current_scene()
-	if Input.is_action_just_pressed("menu"):
-		GameState.menu()
+		hero.respawn()

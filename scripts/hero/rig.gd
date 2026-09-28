@@ -40,6 +40,7 @@ var bones := {}  # name -> Node2D
 var hips: Node2D
 var whip_coil: Node2D  # hidden while the whip is out
 var gun: Node2D
+var grenade: Node2D  # shown in the far hand while a grenade throw is being aimed
 var size_scale := 1.0  # big men (the Brute) are drawn larger
 var facing := 1:
 	set(v):
@@ -179,6 +180,11 @@ func _build() -> void:
 	_poly(gun, PackedVector2Array([Vector2(-0.55, 0.4), Vector2(0.55, 0.4), Vector2(0.45, 5.4), Vector2(-0.45, 5.4)]), STEEL, 10)
 	_poly(gun, PackedVector2Array([Vector2(-0.95, 0.8), Vector2(0.95, 0.8), Vector2(0.95, 2.4), Vector2(-0.95, 2.4)]), STEEL, 10)
 	_poly(gun, PackedVector2Array([Vector2(0.2, 2.6), Vector2(0.5, 2.6), Vector2(0.45, 5.2), Vector2(0.2, 5.2)]), STEEL_L, 10)
+	grenade = Node2D.new()
+	grenade.visible = false
+	bones["hand_b"].add_child(grenade)
+	_poly(grenade, circle(Vector2(0, 1.6), 1.7, 8), Color("#3e4a2c"), 9)
+	_poly(grenade, circle(Vector2(-0.4, 1.2), 0.8, 6), Color("#5c6a3e"), 9)
 
 
 ## Palette swap: {original Color: new Color}. Far-side parts keep their depth tint.

@@ -27,7 +27,7 @@ func _ready() -> void:
 	add_child(_draw_node)
 	_title = _label(Vector2(0, 30), 16, HORIZONTAL_ALIGNMENT_CENTER)
 	_hint = _label(Vector2(0, 252), 8, HORIZONTAL_ALIGNMENT_CENTER)
-	_hint.text = "WASD MOVE  SHIFT RUN  SPACE JUMP  C CROUCH  LMB SHOOT  RMB WHIP  E PUNCH  F KICK  R RELOAD  TAB LOOT"
+	_hint.text = "RMB AIM  LMB FIRE  R WHIP  Q GRENADE  X RELOAD  E PUNCH  F KICK  ESC PAUSE / CONTROLS"
 	_banner = _label(Vector2(0, 110), 16, HORIZONTAL_ALIGNMENT_CENTER)
 	_sign = _label(Vector2(40, 214), 8, HORIZONTAL_ALIGNMENT_CENTER)
 	_sign.size = Vector2(400, 30)
@@ -55,11 +55,24 @@ func bind(hero: Hero, title: String) -> void:
 	_title.text = title.to_upper()
 	hero.ammo_changed.connect(func(_a, reloading): _spin = 1.0 if reloading else _spin)
 	hero.health_changed.connect(func(_hp): _draw_node.queue_redraw())
+	hero.grenades_changed.connect(func(_n): _draw_node.queue_redraw())
 
 
-func banner(text: String) -> void:
+var _banner_hold := false
+
+
+## Big centred text; `hold` keeps it up (level complete) instead of fading.
+func banner(text: String, hold := true) -> void:
 	_banner.text = text
 	_banner.modulate.a = 1.0
+	_banner_hold = hold
+
+
+## A smaller, quicker banner for moments (a bridge falls, a relic found).
+func banner_small(text: String) -> void:
+	_banner.text = text
+	_banner.modulate.a = 1.3
+	_banner_hold = false
 
 
 func smear() -> void:
@@ -76,6 +89,8 @@ func _process(delta: float) -> void:
 	_title.modulate.a = clampf(3.5 - _t, 0.0, 1.0)
 	_hint.modulate.a = clampf(14.0 - _t, 0.0, 0.85)
 	_spin = move_toward(_spin, 0.0, delta * 1.2)
+	if _banner.text != "" and _banner.modulate.a > 0.0 and not _banner_hold:
+		_banner.modulate.a = move_toward(_banner.modulate.a, 0.0, delta * 0.5)
 	_smear = move_toward(_smear, 0.0, delta * 0.6)
 	_draw_node.queue_redraw()
 
@@ -94,7 +109,7 @@ func _draw_hud() -> void:
 			n.draw_circle(c + Vector2(r * 0.3, r * 0.6), r * 0.45, Color(0.7, 0.82, 0.3, 0.35 * _smear))
 			n.draw_rect(Rect2(c + Vector2(-1, r * 0.8), Vector2(2, r * 0.9 * (1.0 - _smear * 0.5))), Color(0.55, 0.7, 0.2, 0.3 * _smear))
 	# Health: one fedora per hit point.
-	for i in Hero.MAX_HP:
+	for i in _hero.max_hp:
 		var x := 10 + i * 14
 		var col := Color("#8a5a30") if i < _hero.hp else Color(0.3, 0.22, 0.18, 0.6)
 		n.draw_rect(Rect2(x + 3, 8, 6, 4), col)
@@ -110,6 +125,15 @@ func _draw_hud() -> void:
 		var loaded := i < _hero.ammo
 		n.draw_circle(p, 2.0, Color("#d8b050") if loaded else Color("#18181c"))
 	n.draw_circle(c, 1.5, Color("#2c2c33"))
+	# Grenades beside the cylinder.
+	for i in _hero.max_grenades:
+		var g := Vector2(38 + i * 9, 252)
+		var have := i < _hero.grenades
+		n.draw_circle(g + Vector2(1, 1), 3.0, SHADOW)
+		n.draw_circle(g, 3.0, Color("#4e5c34") if have else Color(0.25, 0.25, 0.22, 0.5))
+		if have:
+			n.draw_rect(Rect2(g + Vector2(-1, -5), Vector2(2, 2)), Color("#8c8f99"))
+			n.draw_circle(g + Vector2(-1, -1), 1.0, Color("#6c7a46"))
 	# Gold carried (top right).
 	var font := ThemeDB.fallback_font
 	var gtext := "%d G" % GameState.gold

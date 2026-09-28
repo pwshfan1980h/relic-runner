@@ -18,6 +18,9 @@ func clear() -> void:
 	_parts.clear()
 	_lines.clear()
 	_texts.clear()
+	_rings.clear()
+	_smears.clear()
+	_impacts.clear()
 	shake = 0.0
 
 
@@ -55,6 +58,39 @@ func chips(pos: Vector2, dir: Vector2, count := 4, color := Color("#8a6a48")) ->
 		_parts.append([pos, v, 0.0, randf_range(0.3, 0.6), 1.0, color, GRAVITY * 1.5])
 
 
+## Grenade blast: a hot core, a rolling fireball, black smoke and rock debris.
+func explosion(pos: Vector2, radius: float) -> void:
+	var fire := [Color("#fff4c0"), Color("#ffd060"), Color("#ff8a20"), Color("#d04010")]
+	for i in 26:
+		var v := Vector2.from_angle(randf() * TAU) * randf_range(20, radius * 2.2) + Vector2(0, -40)
+		_parts.append([pos, v, 0.0, randf_range(0.2, 0.45), randf_range(3.0, 6.0), fire[i % 4], -40.0])
+	for i in 18:
+		var v := Vector2(randf_range(-50, 50), randf_range(-90, -20))
+		_parts.append([pos + Vector2(randf_range(-8, 8), randf_range(-8, 2)), v, 0.0, randf_range(0.9, 1.8),
+				randf_range(4.0, 8.0), Color(0.16, 0.13, 0.12, 0.8), -15.0])
+	sparks(pos, Vector2.UP, 14, Color("#ffe27a"))
+	chips(pos, Vector2.UP, 12)
+	_rings.append([pos, 0.0, radius])
+
+
+var _rings: Array = []  # shockwave rings: [pos, life, radius]
+var _smears: Array = []  # melee motion smears: [a, b, life, max_life, width, color]
+var _impacts: Array = []  # hit flashes: [pos, dir, life, size]
+
+
+## One segment of an air-cutting smear behind a fist or boot. Consecutive segments
+## form a ribbon that thins and fades from its tail.
+func smear(a: Vector2, b: Vector2, width: float, color := Color(1.0, 0.97, 0.88, 0.85)) -> void:
+	if a.distance_to(b) < 0.5:
+		return
+	_smears.append([a, b, 0.0, 0.11, width, color])
+
+
+## A hit lands: a bright starburst and radiating speed lines.
+func impact(pos: Vector2, dir: Vector2, size := 1.0) -> void:
+	_impacts.append([pos, dir, 0.0, size])
+
+
 func float_text(pos: Vector2, text: String, color := Color.WHITE) -> void:
 	_texts.append([pos, text, 0.0, color])
 
@@ -79,10 +115,43 @@ func _process(delta: float) -> void:
 		tx[2] += delta
 		tx[0].y -= 18.0 * delta
 	_texts = _texts.filter(func(tx): return tx[2] < 1.4)
+	for r in _rings:
+		r[1] += delta
+	_rings = _rings.filter(func(r): return r[1] < 0.22)
+	for m in _smears:
+		m[2] += delta
+	_smears = _smears.filter(func(m): return m[2] < m[3])
+	for im in _impacts:
+		im[2] += delta
+	_impacts = _impacts.filter(func(im): return im[2] < 0.12)
 	queue_redraw()
 
 
 func _draw() -> void:
+	for m in _smears:
+		var u: float = m[2] / m[3]
+		var a: Vector2 = m[0]
+		var b: Vector2 = m[1]
+		var n := (b - a).orthogonal().normalized()
+		var w: float = m[4] * (1.0 - u)
+		if w < 0.4:
+			continue
+		var c: Color = m[5]
+		c.a *= 1.0 - u * u
+		# Tapered quad: thin at the older end.
+		draw_colored_polygon(PackedVector2Array([a + n * w * 0.25, b + n * w * 0.5, b - n * w * 0.5, a - n * w * 0.25]), c)
+	for im in _impacts:
+		var u: float = im[2] / 0.12
+		var s: float = im[3]
+		var p: Vector2 = im[0]
+		var c := Color(1, 1, 0.9, 1.0 - u)
+		draw_circle(p, (2.5 + 3.0 * u) * s, Color(1, 1, 0.85, 0.7 * (1.0 - u)))
+		for i in 6:
+			var d := (im[1] as Vector2).rotated(PI + (i - 2.5) * 0.45)
+			draw_line(p + d * (3.0 + 6.0 * u) * s, p + d * (6.0 + 10.0 * u) * s, c, 1.0)
+	for r in _rings:
+		var u: float = r[1] / 0.22
+		draw_arc(r[0], r[2] * (0.3 + 0.7 * u), 0.0, TAU, 24, Color(1.0, 0.95, 0.8, 0.7 * (1.0 - u)), 2.0)
 	for p in _parts:
 		var t: float = p[2] / p[3]
 		var c: Color = p[5]

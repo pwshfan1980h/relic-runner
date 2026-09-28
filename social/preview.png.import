@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c0d60k7tlrlb0"
-path="res://.godot/imported/canyon_sky.png-71b793d7831fa9137862e6b8cfeb05db.ctex"
+uid="uid://b2eoj1sc64gmg"
+path="res://.godot/imported/preview.png-63c23d110b3abac85157ea7e168a14c4.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/canyon_sky.png"
-dest_files=["res://.godot/imported/canyon_sky.png-71b793d7831fa9137862e6b8cfeb05db.ctex"]
+source_file="res://social/preview.png"
+dest_files=["res://.godot/imported/preview.png-63c23d110b3abac85157ea7e168a14c4.ctex"]
 
 [params]
 

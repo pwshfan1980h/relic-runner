@@ -73,7 +73,7 @@ static func build() -> void:
 	])
 
 	var walk_a := {"th_f": -24.0, "sh_f": 6.0, "ft_f": -12.0, "th_b": 18.0, "sh_b": 12.0, "ft_b": 22.0,
-			"ua_b": -16.0, "fa_b": -20.0, "ua_f": 16.0, "fa_f": -10.0, "torso": 5.0}
+			"ua_b": -24.0, "fa_b": -24.0, "ua_f": 22.0, "fa_f": -10.0, "torso": 5.0}
 	var walk_b := {"th_f": -8.0, "sh_f": 8.0, "ft_f": 0.0, "th_b": -2.0, "sh_b": 42.0, "ft_b": 18.0,
 			"ua_b": 0.0, "fa_b": -18.0, "ua_f": 0.0, "fa_f": -14.0, "torso": 5.0, "hy": -0.7}
 	_add("walk", 0.6, true, 1, _gait([walk_a, walk_b], 0.6), [[0.0, "step"], [0.3, "step"]])
@@ -262,6 +262,13 @@ static func build() -> void:
 		[0.65, {"ua_f": -5.0, "fa_f": -112.0, "ua_b": -16.0, "fa_b": -92.0}],
 		[0.9, {"ua_f": -10.0, "fa_f": -95.0, "ua_b": -10.0, "fa_b": -110.0}],
 	], [[0.35, "shell"], [0.5, "shell"], [0.65, "shell"], [0.85, "spin"]])
+	# Overhand grenade throw with the far arm; the gun hand stays low.
+	_add("throw", 0.4, false, 0, [
+		[0.0, {"ua_b": 150.0, "fa_b": -70.0, "ua_f": 20.0, "fa_f": -30.0}],
+		[0.09, {"ua_b": -150.0, "fa_b": -20.0, "ua_f": 30.0, "fa_f": -30.0}],
+		[0.2, {"ua_b": -60.0, "fa_b": -10.0, "ua_f": 20.0, "fa_f": -25.0}],
+		[0.4, {"ua_b": 8.0, "fa_b": -14.0, "ua_f": 6.0, "fa_f": -12.0}],
+	])
 	_add("whip_pull", 0.35, false, 0, [
 		[0.0, {"ua_b": -60.0, "fa_b": -10.0}],
 		[0.12, {"ua_b": 45.0, "fa_b": -80.0}],
@@ -322,6 +329,7 @@ class Animator:
 	var overlay_name := ""
 	var overlay_time := 0.0
 	var _overlay_w := 0.0
+	var overlay_speed := 1.0
 
 	func _init() -> void:
 		HeroAnims.build()
@@ -344,9 +352,10 @@ class Animator:
 		var c := clip()
 		return not c["loop"] and time >= c["len"]
 
-	func play_overlay(name: String) -> void:
+	func play_overlay(name: String, spd := 1.0) -> void:
 		overlay_name = name
 		overlay_time = 0.0
+		overlay_speed = spd
 
 	func overlay_active() -> bool:
 		return overlay_name != ""
@@ -369,7 +378,7 @@ class Animator:
 		if overlay_name != "":
 			var oc: Dictionary = HeroAnims.clips[overlay_name]
 			var prev_o := overlay_time
-			overlay_time += delta
+			overlay_time += delta * overlay_speed
 			_fire(oc, prev_o, overlay_time)
 			if overlay_time >= oc["len"]:
 				overlay_name = ""

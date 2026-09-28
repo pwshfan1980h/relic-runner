@@ -101,6 +101,14 @@ func stain_below(at: Vector2, width: float, color := BLOOD) -> void:
 		_add_stain(hit.position, width, color, 0.0)
 
 
+## Blast scorch on the floor below (not gore, so always shown).
+func scorch(at: Vector2, width: float) -> void:
+	var q := PhysicsRayQueryParameters2D.create(at + Vector2(0, -4), at + Vector2(0, 300), 1)
+	var hit := get_world_2d().direct_space_state.intersect_ray(q)
+	if hit:
+		_add_stain(hit.position, width, Color(0.07, 0.05, 0.04, 0.8), 0.0)
+
+
 func _add_stain(p: Vector2, width: float, color: Color, wall: float) -> void:
 	_stains.append([p.round(), width, randf(), color, wall])
 	if _stains.size() > MAX_STAINS:

@@ -100,7 +100,7 @@ func _go(s: S) -> void:
 func take_hit(dmg: int, dir: Vector2, at: Vector2, kind := "bullet") -> void:
 	# Shots land on the edge of the collision box, so test the glyph's height band.
 	var glyph_y := global_position.y - 24.0
-	if vulnerable() and absf(at.y - glyph_y) < 6.0:
+	if vulnerable() and (absf(at.y - glyph_y) < 6.0 or kind == "explosion"):
 		Audio.play_at("glyph_hit", at, 0.0)
 		super(dmg, dir, at, kind)
 	else:

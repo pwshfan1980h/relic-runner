@@ -34,6 +34,19 @@ def ramp(pal, v, x, y):
     return pal[i + 1] if (v - i) > bayer(x, y) and i + 1 < len(pal) else pal[i]
 
 
+def ramp_soft(pal, v, x, y, width=0.3):
+    """Like ramp, but flat tones with dithering only in a narrow band between them."""
+    v = max(0.0, min(0.9999, v)) * (len(pal) - 1)
+    i = int(v)
+    f = v - i
+    lo, hi = 0.5 - width / 2, 0.5 + width / 2
+    if f < lo or i + 1 >= len(pal):
+        return pal[i]
+    if f > hi:
+        return pal[i + 1]
+    return pal[i + 1] if (f - lo) / width > bayer(x, y) else pal[i]
+
+
 class Canvas:
     def __init__(self, w, h, fill=CLEAR):
         self.w, self.h = w, h
@@ -116,7 +129,7 @@ def tile(biome, mask, variant):
         for x in range(T):
             # Strata: horizontal banding with a gentle wobble, plus grain.
             band = math.sin((y + 0.8 * math.sin(x * 0.4 + variant * 2.1)) * math.tau / b["strata"])
-            v = 0.55 + band * 0.16 + rng.uniform(-0.06, 0.06)
+            v = 0.55 + band * 0.12 + rng.uniform(-0.025, 0.025)
             # Ambient light: exposed faces catch light (top/left) or fall into shade (right/bottom).
             if not up:
                 v += max(0, 4 - y) * 0.05
@@ -130,7 +143,7 @@ def tile(biome, mask, variant):
                 # Temple blocks: mortar lines every 8px, offset per row.
                 if y % 8 == 0 or (x + (4 if (y // 8) % 2 else 0)) % 8 == 0:
                     v -= 0.22
-            col = ramp(b["rock"], v, x, y)
+            col = ramp_soft(b["rock"], v, x, y)
             c.set(x, y, col)
     # An occasional hairline crack, following the strata more than crossing it.
     if rng.random() < 0.45:
@@ -140,7 +153,7 @@ def tile(biome, mask, variant):
             x += 1
             y += rng.choice((0, 0, 1))
     # Pebbles / grit.
-    for _ in range(3):
+    for _ in range(1):
         c.set(rng.randrange(T), rng.randrange(4, T), b["grit"] if rng.random() < 0.3 else b["rock"][3])
     if not up:
         # Walkable crust: bright lip, dithered into the rock, dark line under it.
@@ -179,160 +192,137 @@ def tileset(biome):
 
 W, H = 480, 270
 
+# --- Backdrops ----------------------------------------------------------------
+# The sky itself is a shader driven by the time of day (scripts/world/sky.gd); these
+# are the silhouettes in front of it. They are deliberately calm: flat fills, two or
+# three tones lit from the upper left, and dithering only in a narrow transition band,
+# so they read as distance instead of noise. The game tints them per time of day and
+# fades each layer toward the horizon colour (atmospheric perspective).
 
-def canyon_sky():
-    sky = [hexc(c) for c in ("#f4dca0", "#f0b878", "#e08c58", "#b8604a", "#7a3c3c")]
+
+def shade_column(c, x, top, pal, rim=2, band=None, seed=0):
+    """Fill x from `top` down: lit rim, body, darker base; banded strata optional."""
+    for y in range(int(top), H):
+        d = y - top
+        if d < rim:
+            col = pal[-1]
+        else:
+            v = 0.62 - min(0.5, d / 260.0)
+            if band:
+                v += 0.08 * math.sin((y + periodic_noise(x, W, seed, 2) * 6) * math.tau / band)
+            # Two-pixel dither transition between tones, nothing more.
+            col = ramp(pal[:-1], v, x, y) if abs((v * (len(pal) - 2)) % 1 - 0.5) < 0.12 else pal[min(len(pal) - 2, int(v * (len(pal) - 2) + 0.5))]
+        c.set(x, y, col)
+
+
+def canyon_far():
     c = Canvas(W, H)
-    for y in range(H):
-        for x in range(W):
-            c.set(x, y, ramp(sky, 1.0 - y / (H * 0.85), x, y))
-    # Sun disc with dithered halo.
-    sx, sy = 340, 70
-    for y in range(H):
-        for x in range(W):
-            d = math.hypot(x - sx, y - sy)
-            if d < 13:
-                c.set(x, y, hexc("#fff4d0"))
-            elif d < 40 and (40 - d) / 27 * 0.5 > bayer(x, y):
-                c.set(x, y, hexc("#f8e2a8"))
-    # Far mesas: flat tops, sheer sides, hazy violet.
-    far = [hexc("#b07870"), hexc("#946066")]
+    pal = [hexc(h) for h in ("#8a6a6c", "#a07c78", "#b89088", "#d0a898")]
     for x in range(W):
         n = periodic_noise(x, W, 11, 3)
-        top = 150 + n * 22
-        # Mesas are flat-topped: quantize the ridge.
-        top = round(top / 8) * 8 + (2 if periodic_noise(x, W, 12, 2) > 0.3 else 0)
-        for y in range(int(top), H):
-            c.set(x, y, ramp(far, (y - top) / 90.0, x, y))
-    c.save("canyon_sky")
+        top = 150 + n * 26
+        top = round(top / 10) * 10  # flat-topped mesas with sheer sides
+        shade_column(c, x, top, pal, rim=1)
+    c.save("canyon_far")
 
 
 def canyon_mid():
     c = Canvas(W, H)
-    pal = [hexc(c_) for c_ in ("#5a2e22", "#7a4030", "#9a5a3a", "#b87248")]
+    pal = [hexc(h) for h in ("#6a3c2c", "#84503a", "#9c6446", "#c08058")]
     for x in range(W):
-        n = periodic_noise(x, W, 21, 5)
-        top = 175 + n * 40
-        # Spires: occasional tall hoodoos.
-        spire = max(0.0, periodic_noise(x, W / 3, 23, 2) - 0.55) * 160
-        top -= spire
-        for y in range(int(top), H):
-            v = 0.8 - (y - top) / 110.0 + 0.1 * math.sin(y * 0.35)
-            if x > 0 and y - top < 2:
-                v = 1.0
-            c.set(x, y, ramp(pal, v, x, y))
+        n = periodic_noise(x, W, 21, 4)
+        top = 178 + n * 34
+        spire = max(0.0, periodic_noise(x, W / 3, 23, 2) - 0.55) * 150
+        shade_column(c, x, top - spire, pal, rim=2, band=14, seed=22)
     c.save("canyon_mid")
 
 
 def canyon_near():
     c = Canvas(W, H)
-    pal = [hexc(c_) for c_ in ("#1e0f0a", "#34190f", "#4a2616")]
+    pal = [hexc(h) for h in ("#2e1810", "#40221a", "#56301f", "#7a4a2e")]
     for x in range(W):
-        n = periodic_noise(x, W, 31, 5)
-        top = 215 + n * 30
-        for y in range(int(top), H):
-            c.set(x, y, ramp(pal, 0.9 - (y - top) / 50.0, x, y))
-    # Dead scrub silhouettes.
+        top = 218 + periodic_noise(x, W, 31, 4) * 26
+        shade_column(c, x, top, pal, rim=1)
     rng = random.Random(33)
-    for _ in range(9):
+    for _ in range(8):
         bx = rng.randrange(W)
-        base = 215 + periodic_noise(bx, W, 31, 5) * 30
-        for _ in range(14):
+        base = 218 + periodic_noise(bx, W, 31, 4) * 26
+        for _ in range(10):
             x, y = bx, int(base)
-            for _ in range(rng.randrange(4, 12)):
+            for _ in range(rng.randrange(4, 11)):
                 c.set(x % W, y, pal[0])
                 x += rng.choice((-1, 0, 1))
                 y -= 1
     c.save("canyon_near")
 
 
-# --- Jungle backdrops ---------------------------------------------------------
-
-def jungle_sky():
-    sky = [hexc(c) for c in ("#c8e0a0", "#8cbc78", "#5a9068", "#346050", "#1c3a34")]
+def jungle_far():
     c = Canvas(W, H)
-    for y in range(H):
-        for x in range(W):
-            c.set(x, y, ramp(sky, 1.0 - y / H, x, y))
-    # Distant temple ziggurat silhouette.
-    base, cx = 190, 150
+    pal = [hexc(h) for h in ("#4a6a5c", "#587a68", "#6a8c76", "#86a88c")]
+    # Distant temple ziggurat on a ridge.
+    base, cx = 188, 150
     for step in range(6):
-        half = 60 - step * 9
-        top = base - step * 12
-        for y in range(top - 12, top):
+        half = 58 - step * 9
+        top = base - step * 11
+        for y in range(top - 11, top):
             for x in range(cx - half, cx + half):
-                c.set(x, y, hexc("#4a7a64"))
-    far = [hexc("#3c6c5a"), hexc("#2c5448")]
+                c.set(x, y, pal[2] if y == top - 11 else pal[1])
     for x in range(W):
-        top = 170 + periodic_noise(x, W, 41, 5) * 25
-        for y in range(int(top), H):
-            c.set(x, y, ramp(far, (y - top) / 60, x, y))
-    # God rays: diagonal dithered shafts of light.
-    for x in range(W):
-        for y in range(H):
-            band = math.sin((x + y * 0.45) * math.tau / 120)
-            if band > 0.86 and (band - 0.86) * 3.0 > bayer(x, y) and bayer(x + 1, y + 2) < 0.5 and y < 210:
-                c.set(x, y, hexc("#b8d898"))
-    c.save("jungle_sky")
+        top = 172 + periodic_noise(x, W, 41, 4) * 22
+        shade_column(c, x, top, pal, rim=1)
+    c.save("jungle_far")
 
 
 def jungle_mid():
     c = Canvas(W, H)
-    pal = [hexc(c_) for c_ in ("#0e2218", "#1a3824", "#2a5030", "#3e6a3a", "#5a8a44")]
+    pal = [hexc(h) for h in ("#16301e", "#1e3e28", "#2a5032", "#3e6a3e", "#5a8a48")]
     rng = random.Random(51)
-    # Trunks: tall, slightly tapering, lit on the left.
     for i in range(6):
         tx = int(W * i / 6 + rng.randrange(-24, 24)) % W
-        tw = rng.randrange(7, 13)
-        for y in range(30, H):
+        tw = rng.randrange(7, 12)
+        for y in range(40, H):
             wob = int(2 * math.sin(y * 0.03 + i))
             for k in range(tw):
-                c.set((tx + k + wob) % W, y, ramp(pal[:3], 0.85 - k / tw, tx + k, y))
-    # Canopy: a ceiling of many small leaf clumps, lit from the upper left.
+                c.set((tx + k + wob) % W, y, pal[2] if k < 2 else (pal[0] if k > tw - 3 else pal[1]))
+    # Canopy: rounded leaf masses in flat tones, lit rims on the lower-left.
     for x in range(W):
-        edge = 62 + periodic_noise(x, W, 52, 6) * 24
+        edge = 60 + periodic_noise(x, W, 52, 5) * 22
         for y in range(0, int(edge)):
-            c.set(x, y, ramp(pal, 0.12 + 0.1 * (y / edge), x, y))
-    for _ in range(1400):
+            c.set(x, y, pal[0] if y < edge - 6 else pal[1])
+    for _ in range(420):
         bx = rng.randrange(W)
-        edge = 62 + periodic_noise(bx, W, 52, 6) * 24
-        by = rng.uniform(-6, edge + 10)
-        r = rng.uniform(3.0, 7.5)
-        depth = by / (edge + 10)  # lower clumps are nearer the light
+        edge = 60 + periodic_noise(bx, W, 52, 5) * 22
+        by = rng.uniform(-4, edge + 8)
+        r = rng.uniform(4.0, 9.0)
         for y in range(int(by - r), int(by + r) + 1):
             for x in range(int(bx - r), int(bx + r) + 1):
                 dx, dy = x - bx, y - by
                 d = math.hypot(dx, dy * 1.3) / r
                 if d < 1 and y >= 0:
-                    lit = 0.25 + 0.45 * depth + 0.3 * max(0.0, -(dx + dy) / (1.6 * r))
-                    c.set(x % W, y, ramp(pal, lit - d * 0.15, x, y))
-    # Hanging vines with leaf nubs.
-    for _ in range(22):
+                    lit = -(dx + dy) / r
+                    col = pal[3] if lit > 0.9 and d > 0.6 else (pal[2] if lit > 0.2 else pal[1])
+                    c.set(x % W, y, col)
+    for _ in range(16):
         x = rng.randrange(W)
-        top = int(70 + periodic_noise(x, W, 52, 6) * 28)
-        for y in range(top, top + rng.randrange(40, 140)):
-            xx = x + int(1.5 * math.sin(y * 0.08 + x))
-            c.set(xx % W, y, pal[1])
-            if rng.random() < 0.12:
-                c.set((xx + rng.choice((-1, 1))) % W, y, pal[3])
+        top = int(66 + periodic_noise(x, W, 52, 5) * 24)
+        for y in range(top, top + rng.randrange(40, 130)):
+            c.set((x + int(1.5 * math.sin(y * 0.08 + x))) % W, y, pal[1])
     c.save("jungle_mid")
 
 
 def jungle_near():
     c = Canvas(W, H)
-    pal = [hexc(c_) for c_ in ("#040a06", "#0e1e10", "#1c3620")]
+    pal = [hexc(h) for h in ("#08140c", "#10241a", "#1c3824")]
     rng = random.Random(61)
-    # Undergrowth band along the bottom.
     for x in range(W):
-        top = 238 + periodic_noise(x, W, 62, 5) * 12
+        top = 240 + periodic_noise(x, W, 62, 4) * 10
         for y in range(int(top), H):
-            c.set(x, y, ramp(pal, 0.4 - (y - top) / 60.0, x, y))
-    # Fronds rooted in the undergrowth, arching up and over with leaflets.
-    for _ in range(26):
+            c.set(x, y, pal[0] if y > top + 1 else pal[1])
+    for _ in range(22):
         bx = rng.randrange(W)
         by = 250 + rng.randrange(0, 12)
         lean = rng.choice((-1, 1)) * rng.uniform(0.4, 1.0)
-        length = rng.randrange(30, 60)
+        length = rng.randrange(30, 58)
         for i in range(length):
             t = i / length
             x = bx + lean * i * 0.9
@@ -350,9 +340,9 @@ if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     for b in BIOMES:
         tileset(b)
-    canyon_sky()
+    canyon_far()
     canyon_mid()
     canyon_near()
-    jungle_sky()
+    jungle_far()
     jungle_mid()
     jungle_near()

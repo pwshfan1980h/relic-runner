@@ -22,12 +22,19 @@ var _mem := {}  # per-step scratch
 func _ready() -> void:
 	hero = level.hero
 	var route := "_route_" + level.map_id
-	if not has_method(route):
+	hero.god = level.map_id != "arena"
+	if has_method(route):
+		call(route)
+	elif CampaignRoutes.has(level.map_id):
+		CampaignRoutes.run(self, level.map_id)
+		if not _route_ok:
+			push_error("route for %s did not build completely" % level.map_id)
+			get_tree().quit(3)
+			return
+	else:
 		push_error("no bot route for " + level.map_id)
 		get_tree().quit(2)
 		return
-	hero.god = level.map_id != "arena"
-	call(route)
 	_next()
 
 
@@ -38,7 +45,7 @@ func _add(name: String, tick: Callable, timeout: float) -> void:
 
 
 func _inputs(d: Dictionary) -> void:
-	for k in ["left", "right", "up", "down", "run", "jump", "whip", "shoot", "reload", "crouch", "punch", "kick"]:
+	for k in ["left", "right", "up", "down", "run", "jump", "whip", "shoot", "reload", "crouch", "punch", "kick", "ads", "grenade"]:
 		hero.bot_input[k] = d.get(k, false)
 	hero.bot_input["aim"] = d.get("aim", hero.global_position + Vector2(200 * hero.facing, -20))
 	for k in d:
@@ -190,108 +197,61 @@ func _route_proving_grounds() -> void:
 	reach_exit()
 
 
-func _route_dry_gulch() -> void:
-	climb_wall(1)
-	go(29 * T, true)
-	long_jump(31 * T - 10, 1, 36 * T)
-	go(58 * T, true)
-	go(61 * T - 10)
+## Kick (F) whatever is ahead until `done` says so.
+func kick_until(label: String, dir: int, done: Callable, timeout := 6.0) -> void:
+	_add(label, func(_d):
+		var ready: bool = hero._melee == "" and on_ground()
+		_inputs({"kick!": ready, "aim": hero.global_position + Vector2(dir * 100, -10)})
+		return done.call(), timeout)
+
+
+## Hold Q aimed at `target`, release, then wait for `done`.
+func grenade_at(target: Vector2, done: Callable, timeout := 6.0) -> void:
+	_add("grenade at %s" % (target / T).round(), func(_d):
+		if _t < 0.5:
+			_inputs({"grenade": true, "grenade!": _t < 0.02, "aim": target})
+		else:
+			_inputs({"aim": target})
+		return _t > 0.6 and done.call(), timeout)
+
+
+## Walk until touching whatever is ahead (a tree, a wall), then stop.
+func climb_to_contact(dir: int) -> void:
+	_add("walk up to it", func(_d):
+		_inputs({"right": dir > 0, "left": dir < 0, "aim": hero.global_position + Vector2(dir * 100, -10)})
+		return hero.is_on_wall() and on_ground(), 6.0)
 	halt()
-	swing(67, 8, 1, 67 * T + 60)
-	land(1, 75 * T)
-	go(100 * T, true)
-	climb_wall(1)
-	climb_wall(1)
-	go(119 * T, true)
-	long_jump(122 * T - 10, 1, 127 * T)
-	reach_exit()
 
 
-func _route_rattler_mesa() -> void:
-	var right_lip := 10 * T - 7.0  # stand here facing right to grab a right-hand shelf's end
-	var left_lip := 22 * T + 7.0   # stand here facing left to grab a left-hand shelf's end
-	ledge_up(right_lip, 1)          # -> 43
-	ledge_up(left_lip, -1)          # -> 40
-	ledge_up(right_lip, 1)          # -> 37 (crumbling middle)
-	dash(19 * T)
-	ledge_up(left_lip, -1)          # -> 34
-	ledge_up(6 * T - 7.0, 1)        # -> 31, via its crumbling end
-	dash(12 * T)
-	ledge_up(left_lip, -1)          # -> 28
-	ledge_up(right_lip, 1)          # -> 25
-	ledge_up(left_lip, -1)          # -> 22
-	ledge_up(right_lip, 1)          # -> 19
-	ledge_up(13 * T + 7.0, -1)      # -> 16, the left summit shelf
-	go(11 * T)
-	halt()
-	swing(16, 4, 1, 17 * T + 20)
-	land(1, 20 * T)
-	reach_exit()
+## Generated routes call this last: a route cut short by an error must not pass.
+var _route_ok := false
 
 
-func _route_bandit_mine() -> void:
-	go(26 * T, true)
-	go(28 * T - 10)
-	halt()
-	swing(31, 7, 1, 31 * T + 50)
-	land(1, 36 * T)
+func route_built() -> void:
+	_route_ok = true
+
+
+func _route_testbed() -> void:
+	go(16 * T, true)
+	_add("up the 14 degree hill", func(_d): return hero.global_position.y <= 11 * T + 0.5, 0.1)
+	go(21 * T, true)
+	_add("up the 45 degree step", func(_d): return hero.global_position.y <= 10 * T + 0.5, 0.1)
+	go(31 * T, true)
+	_add("down the 27 and 18 degree slopes", func(_d): return hero.global_position.y >= 12 * T - 0.5, 0.1)
+	climb_to_contact(1)
+	kick_until("kick the dead tree", 1, func(): return toppler_fallen(33 * T + 8))
+	go(42 * T, true)
+	_add("crossed the fallen tree", func(_d): return hero.global_position.y <= 12 * T + 1.0, 0.1)
+	climb_to_contact(1)
+	kick_until("kick through the cracked wall", 1, func(): return wall_gone(46 * T), 8.0)
 	go(52 * T, true)
-	climb_wall(1)
-	go(69 * T, true)
-	go(70 * T - 10)
 	halt()
-	swing(75, 7, 1, 75 * T + 60)
-	land(1, 81 * T)
-	go(88 * T, true)
-	dash(106 * T)
-	climb_wall(1)
+	grenade_at(Vector2(58 * T - 20, 11 * T + 8), func(): return wall_gone(58 * T), 5.0)
 	reach_exit()
 
 
-func _route_canopy_run() -> void:
-	go(15 * T - 10)
-	halt()
-	swing(20, 3, 1, 20 * T + 60)
-	land(1, 25 * T)
-	go(35 * T - 10)
-	halt()
-	swing(40, 3, 1, 40 * T + 70)
-	land(1, 47 * T)
-	go(57 * T - 10)
-	halt()
-	swing(62, 3, 1, 62 * T + 70)
-	land(1, 69 * T)
-	go(100 * T, true)
-	go(118 * T, true)
-	for i in 5:
-		climb_wall(1)  # four ruined steps, then the 2-tile lip onto the platform
-	go(141 * T - 10)
-	halt()
-	swing(145, 3, 1, 145 * T + 30)
-	swing_next(149, 3, 1, 149 * T + 50)
-	land(1, 152 * T)
-	reach_exit()
-
-
-func _route_sunken_temple() -> void:
-	go(10 * T, true)
-	long_jump(14 * T - 10, 1, 18 * T)
-	long_jump(26 * T - 10, 1, 31 * T)
-	go(38 * T, true)
-	dash(51 * T)
-	go(62 * T, true)
-	dash(82 * T)
-	go(102 * T, true)
-	go(104 * T - 10)
-	halt()
-	swing(108, 7, 1, 108 * T + 40)
-	swing_next(114, 7, 1, 114 * T + 60)
-	land(1, 119 * T)
-	reach_exit()
-
-
-func _route_idol_chamber() -> void:
-	go(12 * T, true)
+## The Guardian: keep range, hop the plinths, shoot the glyph while it glows.
+func boss_fight() -> void:
 	_add("defeat the Guardian", func(_d):
 		var g := _first_enemy(Guardian) as Guardian
 		if g == null:
@@ -301,23 +261,30 @@ func _route_idol_chamber() -> void:
 		if absf(d) > 90.0:
 			want["right" if d > 0 else "left"] = true
 			if hero.is_on_wall() and on_ground():
-				want["jump!"] = true  # hop the low pillars
+				want["jump!"] = true
 		elif absf(d) < 50.0:
 			want["left" if d > 0 else "right"] = true
 		if g.vulnerable() and hero.ammo > 0 and hero._shot_cd <= 0.0:
 			want["shoot!"] = true
+			want["ads"] = true
 		if hero.ammo == 0:
 			want["reload!"] = true
 		_inputs(want)
-		return false, 60.0)
-	go(56 * T, true)
-	go(58 * T - 10)
-	halt()
-	swing(61, 6, 1, 61 * T + 30)
-	swing_next(66, 6, 1, 66 * T + 50)
-	land(1, 69 * T)
-	reach_exit()
+		return false, 90.0)
 
+
+func toppler_fallen(px: float) -> bool:
+	for t in get_tree().get_nodes_in_group("toppler"):
+		if absf((t as Node2D).global_position.x - px) < 12.0:
+			return (t as Breakables.Toppler).fallen
+	return true
+
+
+func wall_gone(px: float) -> bool:
+	for c in level.get_children():
+		if c is Breakables.Wall and absf((c as Node2D).global_position.x - px) < 4.0:
+			return false
+	return true
 
 ## Enemy checks: each type must hurt the hero, react to the whip, and die to the revolver.
 func _route_arena() -> void:
@@ -421,6 +388,7 @@ func _spawn_step(name: String, kind: String, dist: float) -> void:
 func _arena_checks(kind: String, dist: float, hurt_time: float) -> void:
 	_add("%s: spawn" % kind, func(_d):
 		_inputs({})
+		hero.ammo = 6
 		hero.hp = Hero.MAX_HP
 		hero._invuln = 0.0
 		hero.global_position = hero.spawn

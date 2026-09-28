@@ -11,6 +11,7 @@ enum Kind { NONE, ANCHOR, ACTOR, CRACK }
 enum S { IDLE, THROW, HELD, PULL, RETRACT }
 
 const RANGE := 200.0
+var reach := RANGE  # grows with the Long Whip upgrade
 const THROW_SPEED := 1500.0
 const SEGMENTS := 16
 const ASSIST_DEG := 16.0
@@ -33,6 +34,7 @@ var hero: CharacterBody2D
 
 
 func _ready() -> void:
+	reach = RANGE * (1.0 + 0.25 * GameState.up("whip"))
 	top_level = true
 	z_index = 9
 	global_position = Vector2.ZERO
@@ -53,11 +55,11 @@ func pick(from: Vector2, aim: Vector2) -> Array:
 	if dir == Vector2.ZERO:
 		dir = Vector2.RIGHT
 	var space := get_world_2d().direct_space_state
-	var q := PhysicsRayQueryParameters2D.create(from, from + dir * RANGE, 1 | 4)
+	var q := PhysicsRayQueryParameters2D.create(from, from + dir * reach, 1 | 4)
 	if hero:
 		q.exclude = [hero.get_rid()]
 	var hit := space.intersect_ray(q)
-	var ray_end: Vector2 = hit.position if hit else from + dir * RANGE
+	var ray_end: Vector2 = hit.position if hit else from + dir * reach
 	if hit and hit.collider.is_in_group("whippable"):
 		return [Kind.ACTOR, hit.collider, hit.position]
 	# Aim assist: the anchor closest to the aim line inside a cone, with line of sight.
@@ -66,7 +68,7 @@ func pick(from: Vector2, aim: Vector2) -> Array:
 	for a in get_tree().get_nodes_in_group("whip_anchor"):
 		var to: Vector2 = a.global_position - from
 		var d := to.length()
-		if d > RANGE or d < 12.0:
+		if d > reach or d < 12.0:
 			continue
 		var ang := absf(rad_to_deg(dir.angle_to(to)))
 		# Near the cursor counts as aimed, however wide the angle.

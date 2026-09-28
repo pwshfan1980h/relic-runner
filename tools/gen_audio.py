@@ -542,6 +542,54 @@ def item_pickup():
     return out
 
 
+# --- Grenades and the intro ---------------------------------------------------
+
+def explosion():
+    out = silence(2.4)
+    crack = env(lowpass(noise(0.2, 81), 5000), decay(0.03, 0.0005))
+    boom = env(lowpass(noise(1.4, 82), lambda t: 1600 * math.exp(-t * 4) + 120), decay(0.35, 0.002))
+    thump = env(osc(lambda t: 70 - 40 * t, 0.6), decay(0.18))
+    mix(out, drive(crack, 4.0), 0, 0.9)
+    mix(out, drive(boom, 2.5), 0, 1.0)
+    mix(out, thump, 0, 1.0)
+    # Debris pattering down afterwards.
+    rng = random.Random(83)
+    for i in range(26):
+        at = 0.25 + rng.random() * 1.2
+        mix(out, env(bandpass(noise(0.03, 90 + i), 900, 4000), decay(0.008)), at, 0.12 * (1.4 - at * 0.6))
+    tail = env(lowpass(brown(2.0, 84), 400), decay(0.7, 0.05))
+    mix(out, tail, 0.05, 0.5)
+    return echo(out, 0.24, 0.3, 3)
+
+
+def grenade_pin():
+    out = silence(0.3)
+    mix(out, env(highpass(noise(0.02, 91), 2500), decay(0.004)), 0, 0.7)
+    mix(out, env(osc(3100, 0.2, "triangle"), decay(0.05)), 0.01, 0.3)
+    mix(out, env(osc(4200, 0.2, "triangle"), decay(0.04)), 0.07, 0.25)
+    return out
+
+
+def grenade_bounce():
+    out = silence(0.2)
+    mix(out, env(bandpass(noise(0.1, 92), 300, 2200), decay(0.015)), 0, 0.9)
+    mix(out, env(osc(520, 0.1, "square"), decay(0.01)), 0, 0.15)
+    return out
+
+
+def throw_whoosh():
+    return env(bandpass(noise(0.3, 93), 400, 1800), lambda t: math.sin(min(1.0, t / 0.25) * math.pi) ** 2)
+
+
+def intro_boom():
+    """A low cinematic hit for title cards."""
+    out = silence(3.0)
+    mix(out, env(osc(lambda t: 55 - 15 * t, 3.0), decay(0.9, 0.01)), 0, 1.0)
+    mix(out, env(lowpass(brown(3.0, 95), 300), decay(1.0, 0.01)), 0, 0.6)
+    mix(out, env(lowpass(noise(0.3, 96), 2500), decay(0.05)), 0, 0.4)
+    return echo(out, 0.35, 0.3, 3)
+
+
 SFX = [
     gunshot, ricochet, empty_click, reload_open, reload_shell, reload_spin,
     whip_throw, whip_crack, whip_latch,
@@ -551,6 +599,7 @@ SFX = [
     stone_grind, slam, glyph_hit, stone_crumble, spike_hit, crumble_crack, gate_rumble, plate_click,
     gate_tick, checkpoint, squelch, splat, whoosh_punch, whoosh_kick, punch_hit, kick_hit,
     coin_drop, item_drop, coin_pickup, item_pickup,
+    explosion, grenade_pin, grenade_bounce, throw_whoosh, intro_boom,
 ]
 
 

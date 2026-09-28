@@ -2,7 +2,7 @@
 # Runs the play-through bot on every level plus the enemy arena, at real speed.
 # Usage: tools/run_bots.sh [map ...]
 cd "$(dirname "$0")/.." || exit 1
-maps=${*:-"arena proving_grounds dry_gulch rattler_mesa bandit_mine canopy_run sunken_temple idol_chamber"}
+maps=${*:-"arena testbed proving_grounds dry_gulch rattler_mesa bandit_mine canopy_run sunken_temple idol_chamber"}
 fail=0
 for m in $maps; do
 	out=$(godot --headless --path . -- --bot --map "$m" 2>&1)

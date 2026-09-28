@@ -51,6 +51,8 @@ static func icon(item: Item) -> Texture2D:
 			_coin(img, pal)
 		"bandage":
 			_bandage(img)
+		"grenade":
+			_grenade(img)
 	_outline(img)
 	var tex := ImageTexture.create_from_image(img)
 	_cache[key] = tex
@@ -203,3 +205,14 @@ static func _bandage(img: Image) -> void:
 	_rect(img, 2, 7, 8, 1, Color("#c8c0b0"))
 	_rect(img, 5, 3, 2, 6, Color("#d03030"))
 	_rect(img, 4, 5, 4, 2, Color("#d03030"))
+
+
+static func _grenade(img: Image) -> void:
+	for y in range(3, 11):
+		for x in range(3, 10):
+			var d := Vector2(x - 6, y - 7).length()
+			if d < 3.6:
+				_px(img, x, y, Color("#5c6a3e") if x + y < 12 else Color("#3e4a2c"))
+	_rect(img, 5, 1, 3, 2, Color("#8c8f99"))
+	_rect(img, 8, 1, 2, 1, Color("#c0c4cc"))
+	_rect(img, 4, 6, 5, 1, Color("#2a321e"))

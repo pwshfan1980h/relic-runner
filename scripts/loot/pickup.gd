@@ -30,6 +30,8 @@ static func drop(into: Node, at: Vector2, table: Dictionary) -> void:
 			pieces.append(Item.generate(rng.randi(), table.get("luck", 0.0), table.get("min_rarity", 0)))
 	if rng.randf() < table.get("bandage", 0.0):
 		pieces.append(_simple("bandage", "Field Bandage", "", 0))
+	if rng.randf() < table.get("grenade", 0.12):
+		pieces.append(_simple("grenade", "Grenade", "", 0))
 	for it in pieces:
 		var p := Pickup.new()
 		p.item = it
@@ -44,7 +46,7 @@ static func _simple(kind: String, name: String, material: String, value: int) ->
 	it.name = name
 	it.material = material
 	it.value = value
-	it.seed = 1 if kind == "coin" else 2
+	it.seed = {"coin": 1, "bandage": 2}.get(kind, 3)
 	return it
 
 
@@ -101,6 +103,9 @@ func _collect(hero: Hero) -> void:
 		"bandage":
 			hero.heal(1)
 			Audio.play("item_pickup", -6.0)
+		"grenade":
+			hero.add_grenades(1)
+			Audio.play("grenade_pin", -6.0, 0.8)
 		_:
 			GameState.add_item(item)
 			Audio.play("item_pickup", -4.0, 1.0 + item.rarity * 0.08)
@@ -114,14 +119,14 @@ func _draw() -> void:
 	# Glint: rarer things sparkle more often.
 	var every: float = [2.4, 1.8, 1.2, 0.6][item.rarity]
 	var g := fmod(_t, every)
-	if g < 0.18 and item.kind != "bandage":
+	if g < 0.18 and item.kind not in ["bandage", "grenade"]:
 		var c: Color = item.color() if item.rarity > 0 else Color.WHITE
 		var s := 1.0 + (g / 0.18) * 2.0
 		draw_line(Vector2(3 - s, -4 + bob), Vector2(3 + s, -4 + bob), c, 1.0)
 		draw_line(Vector2(3, -4 - s + bob), Vector2(3, -4 + s + bob), c, 1.0)
 	if _hover:
 		var font := ThemeDB.fallback_font
-		var text := item.name + ("" if item.kind in ["coin", "bandage"] else "  (%s)" % Item.RARITY_NAMES[item.rarity])
+		var text := item.name + ("" if item.kind in ["coin", "bandage", "grenade"] else "  (%s)" % Item.RARITY_NAMES[item.rarity])
 		var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
 		var pos := Vector2(-w / 2.0, -12).round()
 		draw_rect(Rect2(pos + Vector2(-2, -8), Vector2(w + 4, 11)), Color(0.05, 0.03, 0.02, 0.8))

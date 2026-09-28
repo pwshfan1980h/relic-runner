@@ -1,13 +1,16 @@
 class_name Hero
 extends CharacterBody2D
 ## The adventurer. Prince-of-Persia momentum on the ground (skids, pivots, running
-## long jump, ledge hang/climb), a bullwhip grapple on right click (swing on anchors,
-## yank whippable actors) and a mouse-aimed revolver on left click.
-## The head and gun arm follow the mouse; the body faces the mouse unless running.
+## long jump, ledge hang/climb), a bullwhip grapple on R (swing on anchors, yank
+## whippable actors), a revolver (hold right click to raise it and aim, left click fires;
+## firing from the hip is a slower, looser quick-draw) and grenades on Q (tap to lob at
+## 45 degrees, hold to aim along a predicted arc). The head follows the mouse; the body
+## faces the mouse while aiming or standing, and the way it's going otherwise.
 
 signal died
 signal ammo_changed(ammo: int, reloading: bool)
 signal health_changed(hp: int)
+signal grenades_changed(n: int)
 
 enum S { GROUND, AIR, HANG, CLIMB, SWING, ROLL, DEAD }
 
@@ -35,6 +38,12 @@ const MAX_HP := 5
 const SHOT_RANGE := 420.0
 const SHOT_COOLDOWN := 0.22
 const CROUCH_WALK := 24.0
+const AIM_WALK := 34.0
+const MAX_GRENADES := 5
+const START_GRENADES := 3
+const TAP_TIME := 0.18  # Q held longer than this shows the arc
+const QUICK_SPREAD := 0.07  # radians of hip-fire wobble
+const RAISE_HOLD := 0.9  # arm stays up this long after a hip shot
 const STAND := Vector2(8, 28)
 const CROUCHED := Vector2(8, 20)
 # Melee hitboxes, facing right, relative to the feet: [rect, active from, active to, damage kind]
@@ -47,6 +56,8 @@ const MELEE := {
 
 var state := S.AIR
 var facing := 1
+var max_hp := MAX_HP  # plus the Lined Stetson upgrade
+var max_grenades := MAX_GRENADES
 var hp := MAX_HP
 var ammo := 6
 var rig: HeroRig
@@ -54,7 +65,7 @@ var anim: HeroAnims.Animator
 var whip: Whip
 var spawn := Vector2.ZERO
 var bot_input := {}  # test bot overrides: action -> bool, "aim" -> Vector2
-var whip_candidate: Array = []  # what a right click would hit now (for the crosshair)
+var whip_candidate: Array = []  # what the whip (R) would hit now (for the crosshair)
 
 var _coyote := 0.0
 var _buffer := 0.0
@@ -79,6 +90,7 @@ var _invuln := 0.0
 var god := false  # test bot: take no damage
 var _killed_by_spikes := false
 var _flash: PointLight2D
+var _glow: PointLight2D  # just enough light to see yourself by in the dark
 var _flash_e := 0.0
 var _whip_arm := 0.0  # weight of the far arm tracking the whip tip
 var crouching := false
@@ -87,14 +99,30 @@ var _melee := ""  # current melee move ("" = none)
 var _melee_t := 0.0
 var _melee_hit: Array = []  # instance ids already hit by this move
 var _combo := false  # second punch queued
+var _smear_prev := Vector2.INF  # last fist/boot point, for the motion smear
+const SMEAR_TIPS := {"punch_a": ["hand_f", Vector2(0, 1), 3.0], "punch_b": ["hand_b", Vector2(0, 1), 3.0],
+		"front_kick": ["ft_f", Vector2(4.2, 0.5), 4.5], "jump_kick": ["ft_f", Vector2(4.2, 0.5), 4.5]}
+var grenades := START_GRENADES
+var aiming := false  # right click held (arm raised)
+var _raise_t := 0.0  # arm kept raised after a quick-draw shot
+var _quick := false  # a hip shot waiting for the arm to come up
+var _q_t := -1.0  # how long Q has been held (-1 = not held)
+var _throw_cd := 0.0
+var arc: Array = []  # predicted grenade arc while Q is held: [points, impact]
+var _arc_vel := Vector2.ZERO
 
 
 func _ready() -> void:
 	add_to_group("hero")
+	max_hp = MAX_HP + GameState.up("hat")
+	max_grenades = MAX_GRENADES + GameState.up("bandolier")
+	hp = max_hp
+	grenades = START_GRENADES + GameState.up("bandolier")
 	collision_layer = 2
 	collision_mask = 1
 	floor_snap_length = 4.0
 	floor_max_angle = deg_to_rad(50)
+	floor_constant_speed = true
 	_shape = CollisionShape2D.new()
 	var rect := RectangleShape2D.new()
 	rect.size = STAND
@@ -115,6 +143,12 @@ func _ready() -> void:
 	_flash.color = Color("#ffd27a")
 	_flash.energy = 0.0
 	add_child(_flash)
+	_glow = PointLight2D.new()
+	_glow.texture = Lights.radial(128)
+	_glow.color = Color("#c8b8a0")
+	_glow.energy = 0.0
+	_glow.position = Vector2(0, -16)
+	add_child(_glow)
 	spawn = global_position
 	_peak_y = global_position.y
 	anim.play("fall", 0.0)
@@ -129,6 +163,8 @@ func _held(action: String) -> bool:
 
 
 func _pressed(action: String) -> bool:
+	if Time.get_ticks_msec() - DialogueBox.closed_at < 250:
+		return false  # the key that closed a conversation isn't also a punch
 	if bot_input.has(action + "!"):
 		var v: bool = bot_input[action + "!"]
 		bot_input.erase(action + "!")
@@ -173,7 +209,7 @@ func _physics_process(delta: float) -> void:
 
 func _ground(delta: float) -> void:
 	var x := _axis()
-	var running := _held("run")
+	var running := _held("run") and not _arm_up()
 	var vx := velocity.x
 	_set_crouch(_held("crouch") and not _skidding or crouching and not _can_stand())
 	if crouching:
@@ -201,7 +237,12 @@ func _ground(delta: float) -> void:
 		anim.play("skid", 0.06)
 		Audio.play("skid_dirt", -6.0, 1.0, 0.1)
 	else:
-		var target := x * (CROUCH_WALK if crouching else (RUN if running else WALK))
+		var target := x * (CROUCH_WALK if crouching else (RUN if running else (AIM_WALK if _arm_up() else WALK)))
+		# Hills: slower climbing, a little faster going down.
+		if is_on_floor() and x != 0.0:
+			var n := get_floor_normal()
+			if absf(n.x) > 0.1:
+				target *= 1.0 + 0.45 * n.x * signf(x)
 		if _melee.begins_with("punch"):
 			target *= 0.4
 		var acc := ACCEL_RUN if running and absf(target) > absf(vx) else ACCEL_WALK
@@ -210,12 +251,15 @@ func _ground(delta: float) -> void:
 	velocity.x = vx
 	velocity.y = 0.0
 
-	# Facing: momentum while running/skidding, otherwise attention follows the mouse.
+	# Facing: momentum while running/skidding; aiming (or standing) follows the mouse;
+	# otherwise the hero faces where they're walking.
 	if not _skidding and _turn_t <= 0.0:
 		if absf(vx) > FAST:
 			_set_facing(int(signf(vx)))
-		else:
+		elif _arm_up() or _q_t >= TAP_TIME or absf(vx) < 5.0 and x == 0.0:
 			_face_mouse()
+		elif x != 0.0:
+			_set_facing(int(signf(x)))
 
 	if _buffer > 0.0 and (not crouching or _can_stand()):
 		_set_crouch(false)
@@ -307,7 +351,7 @@ func _air(delta: float) -> void:
 			velocity.x = move_toward(velocity.x, x * maxf(WALK * 1.3, absf(velocity.x)), AIR_ACCEL * delta)
 		else:
 			velocity.x = move_toward(velocity.x, 0.0, AIR_ACCEL * 1.3 * delta)
-	if absf(velocity.x) < 60.0:
+	if absf(velocity.x) < 60.0 or _arm_up():
 		_face_mouse()
 	elif not _long:
 		_set_facing(int(signf(velocity.x)))
@@ -430,7 +474,7 @@ func _climb(_delta: float) -> void:
 func _on_whip_latched(kind: int, target: Variant) -> void:
 	if kind == Whip.Kind.ANCHOR and state != S.DEAD and state != S.HANG and state != S.CLIMB:
 		_anchor = target
-		_rope_len = clampf((global_position + Vector2(0, -GRIP_H)).distance_to(_anchor.global_position), 20.0, Whip.RANGE)
+		_rope_len = clampf((global_position + Vector2(0, -GRIP_H)).distance_to(_anchor.global_position), 20.0, whip.reach)
 		_reel_to = -1.0
 		if state == S.GROUND:
 			# Tarzan lift: reel the rope in a little so the hero leaves the ground.
@@ -465,7 +509,7 @@ func _swing(delta: float) -> void:
 		_rope_len = maxf(20.0, _rope_len - REEL * delta)
 		_reel_to = -1.0
 	elif _held("down"):
-		_rope_len = minf(Whip.RANGE, _rope_len + REEL * delta)
+		_rope_len = minf(whip.reach, _rope_len + REEL * delta)
 		_reel_to = -1.0
 	elif _reel_to > 0.0:
 		_rope_len = move_toward(_rope_len, _reel_to, 120.0 * delta)
@@ -507,20 +551,45 @@ func _can_act() -> bool:
 	return state in [S.GROUND, S.AIR, S.SWING]
 
 
+## Gun arm raised: aiming down the sights, or just fired from the hip.
+func _arm_up() -> bool:
+	return aiming or _raise_t > 0.0 or _quick
+
+
+## 0..1: how far the gun arm is raised (the camera leans further out while aiming).
+func aim_weight() -> float:
+	return _aim_w
+
+
+func add_grenades(n: int) -> void:
+	grenades = mini(max_grenades, grenades + n)
+	grenades_changed.emit(grenades)
+
+
 func _weapons() -> void:
 	whip_candidate = []
 	if state == S.DEAD:
 		return
+	var delta := get_physics_process_delta_time()
 	var hand_b := rig.point("hand_b", Vector2(0, 1))
 	if _can_act() and whip.can_throw() and state != S.SWING:
 		whip_candidate = whip.pick(hand_b, aim_point())
 	if _can_act() and state != S.SWING and whip.can_throw() and _pressed("whip"):
 		whip.throw(hand_b, aim_point())
 		_whip_arm = 1.0
-	whip.step(get_physics_process_delta_time(), hand_b)
+	whip.step(delta, hand_b)
 	rig.whip_coil.visible = not whip.active()
+	_grenade_input(delta)
 
-	if _can_act() and state != S.SWING:
+	aiming = _held("ads") and _can_act() and state != S.SWING and not _reloading and _melee == "" and state != S.ROLL
+	_raise_t = maxf(0.0, _raise_t - delta)
+
+	# E next to a friendly face talks instead of punching.
+	var npc := _npc_near() if state == S.GROUND else null
+	if npc and _pressed("punch"):
+		_set_facing(int(signf(npc.global_position.x - global_position.x)) if npc.global_position.x != global_position.x else facing)
+		npc.talk()
+	elif _can_act() and state != S.SWING:
 		if _pressed("punch"):
 			if _melee == "punch_a" and _melee_t > 0.06:
 				_combo = true
@@ -535,29 +604,100 @@ func _weapons() -> void:
 			Audio.play("empty_click", -4.0)
 			_start_reload()
 		elif _shot_cd <= 0.0:
-			_shoot()
+			if _aim_w > 0.85:
+				_shoot(0.0)
+			else:
+				# Quick-draw: the arm snaps up and the shot goes when it gets there.
+				_quick = true
+	if _quick:
+		if _reloading or not _can_act() or ammo <= 0:
+			_quick = false
+		elif _aim_w > 0.85 and _shot_cd <= 0.0:
+			_quick = false
+			_shoot(QUICK_SPREAD)
 	if _reloading and not anim.overlay_active():
 		_reloading = false
 		ammo = 6
 		ammo_changed.emit(ammo, false)
 
 
+## Q: a tap lobs a grenade at 45 degrees the way the hero faces; holding shows the arc
+## (through the cursor) and releasing throws along it.
+func _grenade_input(delta: float) -> void:
+	_throw_cd = maxf(0.0, _throw_cd - delta)
+	var can := state in [S.GROUND, S.AIR] and _melee == "" and _throw_cd <= 0.0
+	if _pressed("grenade") and can:
+		if grenades <= 0:
+			Audio.play("empty_click", -6.0, 1.4)
+		else:
+			_q_t = 0.0
+			Audio.play("grenade_pin", -8.0, 1.0, 0.05)
+	if _q_t < 0.0:
+		arc = []
+		return
+	if not can and state != S.GROUND and state != S.AIR:
+		_q_t = -1.0  # grabbed a ledge, died...: put it away
+		arc = []
+		return
+	_q_t += delta
+	var from := _throw_origin()
+	if _q_t >= TAP_TIME:
+		_arc_vel = Grenade.solve(from, aim_point())
+		arc = Grenade.predict(get_world_2d().direct_space_state, from, _arc_vel, [get_rid()])
+	if not _held("grenade"):
+		var vel := _arc_vel if _q_t >= TAP_TIME else Vector2(facing, -1.0).normalized() * Grenade.TAP_SPEED + velocity * 0.4
+		_throw_grenade(from, vel)
+		_q_t = -1.0
+		arc = []
+
+
+func _throw_origin() -> Vector2:
+	return global_position + Vector2(facing * 4.0, -30.0)
+
+
+func _throw_grenade(from: Vector2, vel: Vector2) -> void:
+	grenades -= 1
+	grenades_changed.emit(grenades)
+	_throw_cd = 0.45
+	if absf(vel.x) > 1.0:
+		_set_facing(int(signf(vel.x)))
+	get_parent().add_child(Grenade.make(from, vel, self))
+	anim.play_overlay("throw")
+	Audio.play("throw_whoosh", -6.0, 1.0, 0.1)
+
+
+## Aiming a grenade (Q held past a tap).
+func holding_grenade() -> bool:
+	return _q_t >= 0.0
+
+
+func _npc_near() -> Node2D:
+	for n in get_tree().get_nodes_in_group("npc"):
+		if n.near():
+			return n
+	return null
+
+
 func _start_reload() -> void:
 	_reloading = true
-	anim.play_overlay("reload")
+	anim.play_overlay("reload", 1.4 if GameState.up("loader") > 0 else 1.0)
 	Audio.play("reload_open", -6.0)
 	ammo_changed.emit(ammo, true)
 
 
-func _shoot() -> void:
+func _shoot(spread: float) -> void:
 	ammo -= 1
 	_shot_cd = SHOT_COOLDOWN
+	_raise_t = RAISE_HOLD
 	var muzzle := rig.muzzle_global()
 	var aim := aim_point()
 	var dir := (aim - muzzle).normalized()
 	if muzzle.distance_to(aim) < 8.0 or dir == Vector2.ZERO:
 		dir = (muzzle - rig.point("hand_f")).normalized()
-	var q := PhysicsRayQueryParameters2D.create(muzzle, muzzle + dir * SHOT_RANGE, 1 | 4)
+	if spread > 0.0:
+		dir = dir.rotated(randf_range(-spread, spread))
+	# Cast from the shoulder: at point blank the muzzle is already inside the target.
+	var q := PhysicsRayQueryParameters2D.create(rig.point("ua_f"), muzzle + dir * SHOT_RANGE, 1 | 4)
 	q.exclude = [get_rid()]
 	var hit := get_world_2d().direct_space_state.intersect_ray(q)
 	var end: Vector2 = hit.position if hit else muzzle + dir * SHOT_RANGE
@@ -601,6 +741,7 @@ func _can_stand() -> bool:
 
 
 func _start_melee(move: String) -> void:
+	_smear_prev = Vector2.INF
 	_melee = move
 	_melee_t = 0.0
 	_melee_hit.clear()
@@ -621,6 +762,16 @@ func _melee_step(delta: float) -> void:
 		return
 	_melee_t += delta
 	var spec: Array = MELEE[_melee]
+	# Air-cutting smear along the real path of the fist/boot, from just before the
+	# hit window until just after.
+	var tip: Array = SMEAR_TIPS[_melee]
+	var at := rig.point(tip[0], tip[1])
+	if _melee_t >= spec[1] - 0.05 and _melee_t <= spec[2] + 0.02:
+		if _smear_prev != Vector2.INF:
+			Fx.smear(_smear_prev, at, tip[2])
+		_smear_prev = at
+	else:
+		_smear_prev = Vector2.INF
 	var len: float = HeroAnims.clips[_melee]["len"]
 	if _melee_t >= spec[1] and _melee_t <= spec[2]:
 		var r: Rect2 = spec[0]
@@ -641,7 +792,7 @@ func _melee_hits(r: Rect2, kind: String) -> void:
 	var rect := RectangleShape2D.new()
 	rect.size = r.size
 	params.shape = rect
-	params.collision_mask = 4
+	params.collision_mask = 4 | 1  # actors, plus kickable props (toppler, cracked walls)
 	params.transform = Transform2D(0.0, global_position + r.get_center())
 	for hit in get_world_2d().direct_space_state.intersect_shape(params, 8):
 		var c: Object = hit.collider
@@ -652,6 +803,7 @@ func _melee_hits(r: Rect2, kind: String) -> void:
 		c.take_hit(1, Vector2(facing, 0), at, kind)
 		Audio.play_at("kick_hit" if kind == "kick" else "punch_hit", at, -2.0, 0.12)
 		Fx.add_shake(0.12 if kind == "punch" else 0.25)
+		Fx.impact(at, Vector2(facing, 0), 0.8 if kind == "punch" else 1.3)
 		Fx.hitstop(0.03 if kind == "punch" else 0.06)
 
 
@@ -684,7 +836,7 @@ func hurt(dmg: int, push: Vector2) -> void:
 
 
 func heal(n: int) -> void:
-	hp = mini(MAX_HP, hp + n)
+	hp = mini(max_hp, hp + n)
 	health_changed.emit(hp)
 
 
@@ -751,9 +903,13 @@ func respawn() -> void:
 	_skidding = false
 	whip.release()
 	velocity = Vector2.ZERO
-	hp = MAX_HP
+	hp = max_hp
 	ammo = 6
 	_reloading = false
+	_quick = false
+	_q_t = -1.0
+	grenades = maxi(grenades, START_GRENADES + GameState.up("bandolier"))
+	grenades_changed.emit(grenades)
 	health_changed.emit(hp)
 	ammo_changed.emit(ammo, false)
 	_enter_air(false)
@@ -762,6 +918,10 @@ func respawn() -> void:
 
 
 # --- Pose --------------------------------------------------------------------------
+
+func set_glow(w: float) -> void:
+	_glow.energy = 0.45 * w
+
 
 func _set_facing(f: int) -> void:
 	if f == 0:
@@ -804,13 +964,21 @@ func _pose(delta: float) -> void:
 	rig.position = grip - grip.rotated(rig.rotation)
 
 	var aim := aim_point()
-	var aiming := state in [S.GROUND, S.AIR, S.SWING] and not _reloading and anim.clip_name != "idle_hat" \
+	var raise := _arm_up() and state in [S.GROUND, S.AIR, S.SWING] and not _reloading \
 			and anim.clip_name != "hurt" and _melee == ""
-	_aim_w = move_toward(_aim_w, 1.0 if aiming else 0.0, delta * 8.0)
-	rig.aim_arm("f", aim, _aim_w, -6.0 - _recoil * 50.0)
+	# Snapping the gun up is quick; lowering it is lazier.
+	_aim_w = move_toward(_aim_w, 1.0 if raise else 0.0, delta * (9.0 if raise else 4.0))
+	rig.aim_arm("f", aim, smoothstep(0.0, 1.0, _aim_w), -6.0 - _recoil * 50.0)
 	(rig.bones["ua_f"] as Node2D).rotation -= _recoil * 0.35 * _aim_w
 	if state in [S.GROUND, S.AIR, S.SWING]:
 		rig.look_at_point(aim, 0.8)
+	rig.grenade.visible = holding_grenade()
+	if holding_grenade():
+		# Wind up behind the shoulder, ready to throw.
+		var w := clampf(_q_t / TAP_TIME, 0.0, 1.0)
+		(rig.bones["ua_b"] as Node2D).rotation = lerp_angle((rig.bones["ua_b"] as Node2D).rotation, deg_to_rad(150.0), w)
+		(rig.bones["fa_b"] as Node2D).rotation = lerp_angle((rig.bones["fa_b"] as Node2D).rotation, deg_to_rad(-70.0), w)
+		return
 	# Far arm: follows the whip tip while it's out, grips the rope when swinging.
 	if state == S.SWING and is_instance_valid(_anchor):
 		rig.aim_arm("b", _anchor.global_position, 1.0, 0.0)
